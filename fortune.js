@@ -1,4 +1,4 @@
-fetch("/files/fortune.txt")
+fetch("./files/fortune.txt")
 	.then(response => response.text())
 	.then(data => {
 		var fortune = Array.from(data);
