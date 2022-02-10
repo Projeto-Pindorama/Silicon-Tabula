@@ -1,0 +1,27 @@
+body {
+	font-family: "Arial", Times, serif;
+	background-color: #FFFFEA;
+}
+
+#topbar {
+	background-color: #121212;
+	color: #FFFFEA;
+	text-align: center;
+}
+
+a.topbar_links {
+	color: #FFFFEA;
+}
+
+a.topbar_links:hover {
+	color: #5B92E5;
+} 
+
+h1.st {
+	font-style: bold;
+	text-transform: uppercase;
+}
+
+p.fortune {
+	color: #5B92E5;
+}

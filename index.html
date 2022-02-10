@@ -1,10 +1,32 @@
 <!DOCTYPE html>
 <html>
 	<head>
+		<title>SILICON TABULA</title>
+		<!-- Styling -->
+		<link rel="stylesheet" href="files/css/style.css"
+			   type="text/css">
+		<link rel="shortcut icon" type="image/x-icon"
+		href="files/img/logo.svg">
+		<!-- Load a simple fortune(1) clone -->
 		<script src="files/scripts/fortune.js"></script>
 	</head>
 	<body onload="fortune6()">
-		<p>Silicon Tabula</p><br>
-		<p id="fortune"></p>
+		<div id="topbar">
+			<h1 class="st">
+				<img src="files/img/logo.svg"
+				style="height: 1em;"/>
+				Silicon Tabula
+			</h1>
+			<p class="fortune" id="fortune"></p>
+			<a class="topbar_links" href="#docs">Read the
+				documentation</a> |
+			<a class="topbar_links" href="#chip-in">Chip in!</a>
+		</div>
+		<h2>Welcome to the Silicon Tabula!</h2>
+		<h4><em>Silicon Tabula</em> ("The Silicon Tablet" in latin) is a
+			collection of text resources for the Pindorama project.
+			<br/>It indexes every single documentation for every 
+			single subproject, with additional references to
+			external books, articles etc.</h4>
 	</body>
 </html>
