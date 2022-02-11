@@ -1,5 +1,9 @@
+// Declare the "Newton" font
+@import url(//db.onlinewebfonts.com/c/d14e0c8f6d81412b7b53da569482a010?family=Newton+Web);
+@font-face {font-family: "Newton Web"; src: url("//db.onlinewebfonts.com/t/d14e0c8f6d81412b7b53da569482a010.eot"); src: url("//db.onlinewebfonts.com/t/d14e0c8f6d81412b7b53da569482a010.eot?#iefix") format("embedded-opentype"), url("//db.onlinewebfonts.com/t/d14e0c8f6d81412b7b53da569482a010.woff2") format("woff2"), url("//db.onlinewebfonts.com/t/d14e0c8f6d81412b7b53da569482a010.woff") format("woff"), url("//db.onlinewebfonts.com/t/d14e0c8f6d81412b7b53da569482a010.ttf") format("truetype"), url("//db.onlinewebfonts.com/t/d14e0c8f6d81412b7b53da569482a010.svg#Newton Web") format("svg"); }
+
 body {
-	font-family: "Arial", Times, serif;
+	font-family: "Newton Web", Times, serif;
 	background-color: #FFFFEA;
 }
 
@@ -18,10 +22,31 @@ a.topbar_links:hover {
 } 
 
 h1.st {
+	padding: 8px;
 	font-style: bold;
 	text-transform: uppercase;
 }
 
 p.fortune {
 	color: #5B92E5;
+}
+
+.tabulas {
+	display: flexbox;
+}
+
+.footer {
+	left: 0;
+	bottom: 0;
+	width: 100%;
+	background-color: white;
+	color: black;
+	border: 1px solid black;
+	text-align: right;
+}
+
+img.footer_badge {
+	width: 88px;
+	height: 33px;
+	margin-left: 5px;
 }
