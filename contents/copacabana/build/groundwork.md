@@ -230,7 +230,3 @@ to it.
 workstation#; groupadd baggio
 workstation#; usermod -aG baggio baggio
 ```
-
-#### Setting up the cross-compiling environment  
-
- 
