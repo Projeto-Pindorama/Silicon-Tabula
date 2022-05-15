@@ -1,10 +1,15 @@
 # Silicon Tabula
 
-This repository contains all documentation for Pindorama projects.
+This repository contains all documentation for Pindorama projects.  
+
+Besides the ``index.html`` and ``style.css``, which are served directly,
+everything here is somewhat "raw material" to be processed via [Traité de la
+tabula](https://github.com/takusuman/traite-de-la-tabula.git) from Markdown
+to, then, be served as HTML.  
 
 ## Directory structure
 
-- `contents/`: Contain directories named by each project, these which contain documentation files;
+- `docs/`: Contain directories named by each project, these which contain documentation files;
 - `files/`: Miscellaneous files for the Silicon Tabula front-end (images and
   styling) and back-end (scripts and programs);
 - `index.html`: There you go.
