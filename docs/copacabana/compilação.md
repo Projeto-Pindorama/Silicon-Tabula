@@ -1281,12 +1281,48 @@ for i in 'msgfmt' 'msgmerge' 'xgettext'; do
 done
 ```
 
+### Sortix libz (fork da zlib)
+
+A libz do Sortix (irei chamar de "libz", para manter as coisas mais simples) é
+um fork da zlib que contém diversas mudanças, entre elas uma limpeza
+considerável no código, que vai desde a remoção de algumas abstrações (como
+``z_const`` e ``z_NULL``, por exemplo), reestruturação de sintaxe (de C K&R para
+C ANSI) e a remoção do suporte para plataformas antigas e sistemas
+não-UNIX-compatíveis[^27]; o que faria da biblioteca consideravelmente mais
+segura e pequena.  
+A libz foi criada dentro do desenvolvimento do sistema operacional Sortix em
+2015, por Jonas Termansen e posteriormente teve contribuições de outros
+*hackers* envolvidos com o Sortix.[^28]
+
+Estaremos utilizando-a porque cai como uma luva tanto para o sistema final
+quanto para essa toolchain.  
+
+#### 1º: Rode o *script* ``configure``
+
+```sh
+./configure --prefix=/tools \
+	CC=$CC \
+	CXX=$CXX \
+	AR=$AR \
+	AS=$AS \
+	RANLIB=$RANLIB \
+	LD=$LD \
+	STRIP=$STRIP
+```
+
+#### 2º: Compile e instale na toolchain
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
 ### pigz 
 
-O pigz é uma reimplementação escrita do zero em 2007[^27] por Mark Adler (e
-licenciada numa  licença mais liberal[^28] do que a da implementação original
+O pigz é uma reimplementação escrita do zero em 2007[^29] por Mark Adler (e
+licenciada numa licença mais liberal[^30] do que a da implementação original
 do Projeto GNU) do gzip, 100% compatível com o mesmo, mas com suporte à
-paralelização[^29]. Em um gigantesco resumo feito por alguém que está vendo
+paralelização[^31]. Em um gigantesco resumo feito por alguém que está vendo
 paralelismo recentemente em Golang (e que ainda não entende muito), basicamente
 ele usa todo o potencial de CPUs mais modernas --- ou seja, com dois ou mais
 núcleos --- dividindo a "carga" das instruções do código entre vários outros
@@ -1296,12 +1332,12 @@ execução da tarefa ocorra mais rapidamente e utilize a máquina de forma mais
 eficiente. Essa parte está um tanto vaga, talvez no futuro eu complemente-a
 melhor --- talvez quando entrar na faculdade de fato.  
 O gzip original foi escrito originalmente em 1992 e teve sua versão estável
-publicada em 1993[^30] por Jean-loup Gailly e Mark Adler[^31] (exatamente o
+publicada em 1993[^32] por Jean-loup Gailly e Mark Adler[^33] (exatamente o
 mesmo cara que fez o pigz 15 anos depois, "arredondando"). Para ser mais
 exato, Jean-loup teria escrito o algoritmo de compressão  e Mark o algoritmo de
 descompressão da zlib (utilizada no gzip (e, abrindo parênteses dentro de
 parênteses, posteriormente em centenas de outras aplicações, entre elas o
-pigz))[^32] --- todavia, essa parte se torna um tanto ambígua/incompleta, pois,
+pigz))[^34] --- todavia, essa parte se torna um tanto ambígua/incompleta, pois,
 enquanto a página oficial do Projeto GNU diz apenas que "Adler escreveu a parte
 de descompressão", sem deixar claro se ele escreveu um algoritmo ou o comando
 ``gunzip``(1) ou até mesmo os dois, a página principal da zlib deixa claro que
@@ -1312,8 +1348,8 @@ alternativa completamente livre --- sem patentes ou *royalties* --- aos comandos
 ``compress``(1) e ``uncompress``(1), presentes em diversos sistemas UNIX-compatíveis.  
 Só tinha um único problema nessa história: ao contrário de outros programas/comandos
 já antes reimplementados, o algoritmo empregado, o LZW (**L**empel–**Z**iv–**W**elch),
-estava protegido sob patentes de propriedade da Unisys e da IBM[^33] --- essas que
-eventualmente expirariam em 20 de Junho de 2003 nos Estados Unidos da América[^34],
+estava protegido sob patentes de propriedade da Unisys e da IBM[^35] --- essas que
+eventualmente expirariam em 20 de Junho de 2003 nos Estados Unidos da América[^36],
 coisa de aproximadamente 11 anos depois do lançamento da zlib, o que seria, num momento
 de popularização da Internet e da necessidade de transferir arquivos (principalmente
 imagens, no meio mais convencional/doméstico de usuários), uma espera impraticável e que
@@ -1323,16 +1359,52 @@ compressão durante esse tempo ---, o que impedia que ferramentas pudessem utili
 permissão prévia mediante pagamento de uma taxa fixa e 1,5% (ou 0,15 US$, o que
 fosse maior ao fim da soma do total) por cópia distribuída e registrada ---
 isto **apenas** para aplicações envolvendo GIFs, não usando o usando o algoritmo
-independentemente.[^35]  
+independentemente.[^37]  
 No meio dessa correria, após várias tentativas e ideias (inclusive a de
-"descompatar" os arquivos GIF) resolveu se criar uma biblioteca completamente
-livre, implementando um novo algoritmo sem patentes e que pudesse substituir
-completamente o LZW. Se acabou com a zlib --- e, para substituir ferramentas de
-linha de comando, o gzip --- que, com o tempo, se provaram mais eficientes do
-que ferramentas e bibliotecas implementando o LZW.  
+"descompatar" os arquivos GIF) resolveu-se criar uma biblioteca completamente
+livre, implementando um algoritmo sem patentes e que pudesse substituir
+completamente o LZW. Se acabou com a zlib implementando o DEFLATE, esse que se provou
+mais eficiente que o LZW --- essa afirmação sendo feita pelo website do gzip,
+todavia não ligando a nenhum outro artigo que mostre por meio de *benchmarks* ou
+*footprints* a diferença entre os dois; por mais que, por experimentos
+empíricos, possamos constatar que isso é verdade.   
 
+#### 1º: Pequeno ajuste no ``Makefile``
 
-#### 1º: Compile e instale na toolchain
+Assim como no New AWK, devemos comentar a declaração da variável ``CC`` --- essa
+estando na linha 1 do arquivo ``Makefile``, assim podemos declarar ``CC=$CC``,
+fazendo explicitamente com que o GNU Make use o compilador da toolchain.  
+
+Não creio que seja necessário tirar um *diff* do arquivo original em comparação
+com o inicial nesse caso.
+
+#### 2º: Compile e instale na toolchain
+
+O pigz, por ser um programa portável, não faz uso do GNU auto\*tools --- ou
+seja, ele não tem um script ``configure`` ---, então é só rodar o GNU Make.  
+
+```sh
+CC=$CC gmake -j$(grep -c 'processor' /proc/cpuinfo)
+```
+
+Como o Makefile do pigz não tem um alvo ``install``, teremos de instalar
+manualmente (assim como no New AWK, inclusive o *hack* em Shell será semelhante).  
+
+```sh
+for i in pigz unpigz; do
+	install -m755 $i /tools/bin
+done \
+&& ( \
+	cd /tools/bin \
+	&& ln -v pigz gzip \
+	&& ln -v unpigz gunzip \
+	&& cd - \
+) \
+&& install -m444 pigz.1 /tools/share/man/man1 \
+&& gmake clean
+```
+
+### GNU Make
 
 
 
@@ -2136,17 +2208,19 @@ commit ``19e881cd880ecd6fc8a6711c1c9038c2f3221381`` no dia 12 de dezembro de
 [^24]: https://github.com/sabotage-linux/gettext-tiny/blob/master/LICENSE
 [^25]: https://github.com/sabotage-linux/gettext-tiny/blob/master/README.md 
 [^26]: http://nickdesaulniers.github.io/blog/2016/08/13/object-files-and-symbols/
-[^27]: https://github.com/madler/pigz/blob/50d58f7c861600769fae9471b8961688eca7f46c/pigz.c#L6-L8
-[^28]: https://github.com/madler/pigz/blob/master/pigz.c#L1-L26
-[^29]: https://github.com/madler/pigz/blob/master/README
-[^30]: https://git.savannah.gnu.org/cgit/gzip.git/tree/ChangeLog-2007#n1771
+[^27]: https://gitlab.com/sortix/libz/blob/master/CHANGES 
+[^28]: https://gitlab.com/sortix/libz/-/commit/611fd6a10e0ea22dfb7f08432b80fd02780d45de
+[^29]: https://github.com/madler/pigz/blob/50d58f7c861600769fae9471b8961688eca7f46c/pigz.c#L6-L8
+[^30]: https://github.com/madler/pigz/blob/master/pigz.c#L1-L26
+[^31]: https://github.com/madler/pigz/blob/master/README
+[^32]: https://git.savannah.gnu.org/cgit/gzip.git/tree/ChangeLog-2007#n1771
 	https://git.savannah.gnu.org/cgit/gzip.git/tree/ChangeLog-2007#n1575
-[^31]: http://gzip.org
-[^32]: https://zlib.net
+[^33]: http://gzip.org
+[^34]: https://zlib.net
 	https://www.gnu.org/software/gzip/
-[^33]: https://web.archive.org/web/20090626052026/http://www.unisys.com/about__unisys/lzw/
-[^34]: http://web.archive.org/web/20000815064543/http://www.gnu.org/philosophy/gif.html
-[^35]: https://groups.csail.mit.edu/mac/projects/lpf/Patents/Gif/origCompuServe.html
+[^35]: https://web.archive.org/web/20090626052026/http://www.unisys.com/about__unisys/lzw/
+[^36]: http://web.archive.org/web/20000815064543/http://www.gnu.org/philosophy/gif.html
+[^37]: https://groups.csail.mit.edu/mac/projects/lpf/Patents/Gif/origCompuServe.html
 
 Nota[7]: https://www.linuxfromscratch.org/museum/lfs-museum/8.4/LFS-BOOK-8.4-HTML/chapter06/createfiles.html
 Nota[8]: https://www.spinics.net/lists/kernel/msg4026980.html  
