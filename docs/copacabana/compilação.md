@@ -1200,7 +1200,7 @@ compilar para substituir a implementação do Heirloom presente atualmente na
 toolchain.  
 Ela foi escrita originalmente por Ian Darwin em 1986[^21] --- e, desde então, sido
 atualizada frequentemente ---, como uma reimplementação de código-aberto do
-comando ``file``(1) presente no Research UNIX, versão 4.  
+comando ``file``(1) presente na versão 4 do Research UNIX.  
 
 ***
 **Nota para compilações futuras**: Caso seja de interesse, talvez possamos
@@ -1297,6 +1297,14 @@ A libz foi criada dentro do desenvolvimento do sistema operacional Sortix em
 Estaremos utilizando-a porque cai como uma luva tanto para o sistema final
 quanto para essa toolchain.  
 
+***
+**Nota**: É necessário compilar a libz antes do pigz, já que a árvore de
+código-fonte do pigz não provê uma versão da zlib para linkeditar --- ou seja, o
+pigz espera que já tenha a zlib (ou algo equivalente, como a libz) instalado no
+prefixo onde ele será instalado --- no nosso caso, o ``/tools``.
+
+***
+
 #### 1º: Rode o *script* ``configure``
 
 ```sh
@@ -1321,16 +1329,22 @@ gmake -j$(grep -c 'processor' /proc/cpuinfo) \
 
 O pigz é uma reimplementação escrita do zero em 2007[^29] por Mark Adler (e
 licenciada numa licença mais liberal[^30] do que a da implementação original
-do Projeto GNU) do gzip, 100% compatível com o mesmo, mas com suporte à
-paralelização[^31]. Em um gigantesco resumo feito por alguém que está vendo
-paralelismo recentemente em Golang (e que ainda não entende muito), basicamente
-ele usa todo o potencial de CPUs mais modernas --- ou seja, com dois ou mais
-núcleos --- dividindo a "carga" das instruções do código entre vários outros
-processos menores que são executados simultaneamente --- o que se chama de "fio
-de execução" (ou *thread*, no inglês do Rei) --- assim fazendo com que a
+do Projeto GNU) do gzip e 100% compatível com o mesmo, mas com suporte à
+paralelização[^31].
+
+***
+**Nota**: Em um gigantesco resumo feito por alguém que está vendo paralelismo
+recentemente em Golang (e que ainda não entende muito), basicamente ele usa
+todo o potencial de CPUs mais modernas --- ou seja, com dois ou mais núcleos ---
+dividindo a "carga" das instruções do código entre vários outros processos
+menores que são executados simultaneamente --- o que se chama de "fio de
+execução" (ou *thread*, no inglês do Rei) --- assim fazendo com que a
 execução da tarefa ocorra mais rapidamente e utilize a máquina de forma mais
 eficiente. Essa parte está um tanto vaga, talvez no futuro eu complemente-a
 melhor --- talvez quando entrar na faculdade de fato.  
+
+***
+
 O gzip original foi escrito originalmente em 1992 e teve sua versão estável
 publicada em 1993[^32] por Jean-loup Gailly e Mark Adler[^33] (exatamente o
 mesmo cara que fez o pigz 15 anos depois, "arredondando"). Para ser mais
@@ -1364,10 +1378,10 @@ No meio dessa correria, após várias tentativas e ideias (inclusive a de
 "descompatar" os arquivos GIF) resolveu-se criar uma biblioteca completamente
 livre, implementando um algoritmo sem patentes e que pudesse substituir
 completamente o LZW. Se acabou com a zlib implementando o DEFLATE, esse que se provou
-mais eficiente que o LZW --- essa afirmação sendo feita pelo website do gzip,
-todavia não ligando a nenhum outro artigo que mostre por meio de *benchmarks* ou
-*footprints* a diferença entre os dois; por mais que, por experimentos
-empíricos, possamos constatar que isso é verdade.   
+mais eficiente que o LZW --- tal afirmação é feita pelo website do gzip, todavia não
+ligando a nenhum outro artigo que mostre, por meio de *benchmarks* ou
+*footprints*, a superioridade do DEFLATE em relação ao LZW; por mais que, por
+experimentos empíricos, possamos constatar que é verdade.   
 
 #### 1º: Pequeno ajuste no ``Makefile``
 
@@ -1406,7 +1420,34 @@ done \
 
 ### GNU Make
 
+O GNU Make provê uma implementação livre da ferramenta Make --- que originalmente
+teria surgido na 7ª versão do UNIX da AT&T[^38] a fim de auxiliar no processo de
+se manter programas que fossem montados a partir de várias operações seguidas
+numa certa quantidade de arquivos[^39], o que acabou por facilitar e muito a
+vida de programadores e não-programadores (até porque o Make não necessariamente
+precisaria ser usado para código-fonte, mas também para documentos em Roff por
+exemplo) no futuro --- que foi criado(?) (se "forkeado" da árvore de código-fonte
+de outro programa maior já existente ou se foi escrita na mão do zero, não sei
+informar ao certo; não ficou muito claro no registro de mudanças (``ChangeLog.1``))
+em 1988 por Roland McGrath[^40] e, posteriormente (apenas após 1995, pelo o que
+consta no arquivo ``ChangeLog.2``[^41]) recebeu algumas contribuições de Richard
+Matthew Stallman.
 
+#### 1º: Rode o *script* ``configure``
+
+```sh
+./configure --prefix=/tools \
+	--without-guile \
+	--host=$COPA_TARGET \
+	--build=$COPA_HOST
+```
+
+#### 2º: Compile e instale na toolchain
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
 
 # Preparando o ambiente de *chroot* para o sistema final
 
@@ -2221,6 +2262,10 @@ commit ``19e881cd880ecd6fc8a6711c1c9038c2f3221381`` no dia 12 de dezembro de
 [^35]: https://web.archive.org/web/20090626052026/http://www.unisys.com/about__unisys/lzw/
 [^36]: http://web.archive.org/web/20000815064543/http://www.gnu.org/philosophy/gif.html
 [^37]: https://groups.csail.mit.edu/mac/projects/lpf/Patents/Gif/origCompuServe.html
+[^38]: https://www.freebsd.org/cgi/man.cgi?make(1)#HISTORY
+[^39]: http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.95.9198&rep=rep1&type=pdf
+[^40]: https://git.savannah.gnu.org/cgit/make.git/tree/ChangeLog.1#n4976
+[^41]: https://git.savannah.gnu.org/cgit/make.git/tree/ChangeLog.2#n3213
 
 Nota[7]: https://www.linuxfromscratch.org/museum/lfs-museum/8.4/LFS-BOOK-8.4-HTML/chapter06/createfiles.html
 Nota[8]: https://www.spinics.net/lists/kernel/msg4026980.html  
