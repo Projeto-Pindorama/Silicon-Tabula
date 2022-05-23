@@ -1034,9 +1034,10 @@ mv usr share
 
 E, por fim, copie tudo para a nossa toolchain em ``/tools``.
 
-```console
+```sh
 cp -rvf ./* /tools/
 ```
+
 ***
 **Nota para compilações futuras**: Nós poderíamos remover a implementação do
 ``file``(1), partindo do princípio que nós já iremos compilar uma implementação
@@ -1053,8 +1054,8 @@ simples do que a que a maioria das distribuições atuais usa.
 ferramentas para que sigam o último padrão POSIX, assim, no caso do ``rm``(1),
 evitando erros como o clássico "Your 'rm' program is bad, sorry." ("Seu programa
 'rm' é ruim, perdão.", em tradução literal)[^17] e não teremos de substituí-las
-pelas ferramentas do lobase --- por mais que, para isso, você possivelmente terá
-de ter mais conhecimento sobre C do que tem atualmente.  
+pelas ferramentas do lobase no sistema final --- por mais que, para isso, você
+possivelmente terá de ter mais conhecimento sobre C do que tem atualmente.  
 ... Ou simplesmente deixar isso de lado, afinal esse "bug" surgiu como resultado
 de *scripting* em Shell feito de forma porca (com todo o respeito aos
 (pseudo-)"intelectuais", "bacharelados" e "profissionais" de ego frágil, e aos
@@ -1292,7 +1293,9 @@ não-UNIX-compatíveis[^27]; o que faria da biblioteca consideravelmente mais
 segura e pequena.  
 A libz foi criada dentro do desenvolvimento do sistema operacional Sortix em
 2015, por Jonas Termansen e posteriormente teve contribuições de outros
-*hackers* envolvidos com o Sortix.[^28]
+*hackers* envolvidos com o Sortix.[^28]  
+Eu não estarei dando uma explicação/introdução à existência da zlib original em
+si, pois isso eu já fiz na etapa do pigz, que vem após essa.  
 
 Estaremos utilizando-a porque cai como uma luva tanto para o sistema final
 quanto para essa toolchain.  
@@ -1421,7 +1424,7 @@ done \
 ### GNU Make
 
 O GNU Make provê uma implementação livre da ferramenta Make --- que originalmente
-teria surgido na 7ª versão do UNIX da AT&T[^38] a fim de auxiliar no processo de
+teria surgido na 7ª versão do UNIX da AT&T[^38], a fim de auxiliar no processo de
 se manter programas que fossem montados a partir de várias operações seguidas
 numa certa quantidade de arquivos[^39], o que acabou por facilitar e muito a
 vida de programadores e não-programadores (até porque o Make não necessariamente
@@ -1447,6 +1450,33 @@ Matthew Stallman.
 ```sh
 gmake -j$(grep -c 'processor' /proc/cpuinfo) \
 	&& gmake install
+```
+
+### Patch (do lobase)
+
+O Patch é uma ferramenta para aplicar correções (no inglês do Rei, *patches*) em
+arquivos individuais ou em árvores inteiras de arquivos --- não necessariamente
+código-fonte, podendo ser texto-puro por exemplo.  
+A implementação do lobase veio, assim como todo o pacote em si, do OpenBSD ---
+mais especificamente foi importado da árvore de código-fonte na versão 6.3 --- a
+qual surgiu em 1996 em seu primeiro lançamento, baseada no patch12u8, que ainda
+não era licenciada sob a GNU GPL e, posteriormente, foram mantendo essa versão
+em paralelo com a implementação do GNU.[^42]
+
+#### 1º: Compile e instale na toolchain
+
+Como o código-fonte em si já está presente no diretório do lobase, não deve se
+ter nenhum esforço adicional além de entrar no diretório ``usr.bin/patch`` e
+executar o GNU Make.  
+
+```sh
+cd "$COPA/usr/src/cmp/stripped-lobase-20180406-original/usr.bin/patch" \
+	&& gmake clean \
+	&& gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& install -m755 ./patch /tools/bin \
+	&& install -m444 patch.1 /tools/share/man/man1 \
+	&& gmake clean \
+&& cd -
 ```
 
 # Preparando o ambiente de *chroot* para o sistema final
@@ -2266,6 +2296,7 @@ commit ``19e881cd880ecd6fc8a6711c1c9038c2f3221381`` no dia 12 de dezembro de
 [^39]: http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.95.9198&rep=rep1&type=pdf
 [^40]: https://git.savannah.gnu.org/cgit/make.git/tree/ChangeLog.1#n4976
 [^41]: https://git.savannah.gnu.org/cgit/make.git/tree/ChangeLog.2#n3213
+[^42]: https://invisible-island.net/diffstat/#dep_patch
 
 Nota[7]: https://www.linuxfromscratch.org/museum/lfs-museum/8.4/LFS-BOOK-8.4-HTML/chapter06/createfiles.html
 Nota[8]: https://www.spinics.net/lists/kernel/msg4026980.html  
