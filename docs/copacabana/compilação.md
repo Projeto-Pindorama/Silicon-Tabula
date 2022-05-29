@@ -1422,6 +1422,23 @@ done \
 && gmake clean
 ```
 
+### XZ-Utils do Tukaani
+
+#### 1º: Rode o *script* ``configure``
+
+```sh
+./configure --prefix=/tools \
+	--target=$COPA_TARGET \
+	--build=$COPA_HOST
+```
+
+#### 2º:  Compile e instale na toolchain
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
 ### GNU Make
 
 O GNU Make provê uma implementação livre da ferramenta Make --- que originalmente
@@ -1567,8 +1584,76 @@ gmake -j$(grep -c 'processor' /proc/cpuinfo) \
 	&& gmake install
 ```
 
-### Schily's TAR (star ou simplesmente ``tar``(1))
- 
+### TAR do "Schily" (star ou simplesmente ``tar``(1))
+
+#### 1º: Aplique os *patches*
+
+Esse *patch* faz com que o star seja compilado para o prefixo ``/tools`` ao invés
+de ``/opt/schily``, é uma simples alteração no arquivo ``DEFAULTS/Defaults``,
+dentro da árvore de código-fonte do star.  
+Posteriormente, no sistema final, teremos outro *patch* --- que, nesse momento
+do dia 27 de maio de 2022 eu ainda não fiz --- que vai fazer com que o prefixo
+seja o ``/`` e que o binário em si seja linkeditado de forma completamente
+estática.  
+
+***
+**Nota**: Algo que eu ainda hei de repetir diversas vezes durante esse manual
+--- tanto nessa parte da toolchain quanto, principalmente, no sistema final ---
+é de que eu estou considerando que você ainda não esteja dentro do
+diretório-alvo do nosso *patch*.  
+Nesse caso, apenas mude ``-d ./star-1.6`` por ``-d .``.  
+É mais um procedimento padrão que vale a pena se relembrar, pois se você
+esquecer disso agora, vai acabar com um ``tar``(1) quebrado que aponta para a
+biblioteca C da máquina hospedeira --- no caso do Ubuntu 22.04, que estou
+usando, ``/lib64/ld-linux-x86-64.so.2`` --- ao invés da biblioteca C da
+toolchain (``/tools/lib/ld-musl-x86_64.so.1``).
+
+***
+
+```sh
+patch -p1 -d ./star-1.6/ < \
+	"$COPA/usr/src/copacabana/patches/star-1.6/star-1.6_tools.patch"
+```
+
+#### 2º: Compile e instale na toolchain
+
+***
+**Nota**: Por conta do sistema de compilação do Schilling (e de tal gambiarra,
+por assim dizer, para que programas utilizando-o compilem com o GNU Make ao
+invés de seu "Schily SunPro Make"), o star toma um tempo considerável para
+compilar --- mesmo numa máquina recente com um AMD Ryzen 5 3500U e 12GB de
+memória RAM e utilizando todos os 8 núcleos (por meio da opção ``-j`` de
+paralelização do GNU Make), ele leva ≃4min3.76sec para o processo de compilação
+e linkedição.  
+Se você estiver numa máquina menos potente do que essa, possivelmente vai levar
+5 ou 6 minutos. Logo, aproveite e passe um café ou um chá --- ou, se não estiver
+com muita pressa, saia para caminhar.  
+
+***
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
+### GNU Texinfo
+
+#### 1º: Rode o *script* ``configure``
+
+```sh
+./configure --prefix=/tools \
+	--target=$COPA_TARGET \
+	--build=$COPA_HOST
+```
+
+#### 2º:  Compile e instale na toolchain
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
+### 
 
 # Preparando o ambiente de *chroot* para o sistema final
 
