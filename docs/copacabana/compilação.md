@@ -13,7 +13,7 @@ colar instruções, mas sim entendê-las sem muito esforço.
 Após montar a partição root (``/``) da imagem de disco com o L.E.``mount``,
 crie mount points para o ``/boot``, ``/usr``, ``/opt`` e ``/var``, que serão
 utilizados na compilação, e então monte essas partições com o
-comando mount padrão.
+comando ``mount``(8) padrão.
 
 ```console
 lemount -D /dev/loop0p5 -t dsk
@@ -33,8 +33,8 @@ o Bourne shell, a fim de matar tempo.
 
 Feito isso, mude as permissões do diretório ``$COPA/usr/src`` para
 ``baggio:wheel`` (ou ``baggio:baggio``, caso seu sistema não tenha o grupo
-``wheel``, ex.: não seja o Copacabana em si), vamos precisar que o
-usuário baggio tenha acesso ao diretório ``/usr/src`` (do disco-alvo do
+\```wheel``', ex.: não seja o Copacabana em si), vamos precisar que o
+usuário \```baggio``' tenha acesso ao diretório ``/usr/src`` (do disco-alvo do
 Copacabana, só para dar ênfase nisso) pois é neste diretório que
 vamos baixar todo o código-fonte necessário para compilar todos os
 três stages. Agora apenas execute o *script* ``cmd/download_sources.bash``,
@@ -74,7 +74,7 @@ mkdir $COPA/usr/src/cmp
 
 ***
 **Nota sobre o sources.txt**: O arquivo ``sources.txt`` é, como deveria se
-esperar, um arquivo com um index de URLs para tarballs contendo código-
+esperar, um arquivo com um índice de URLs para *tarballs* contendo código-
 fonte, todavia com uma mudança simples que facilita a criação de um
 sistema de separação de sources por mantenedor/projeto/utilidade:
 um sistema simples de categorização de URLs.  
@@ -98,17 +98,17 @@ http://ftp.sourceforge.net/pub/mirrors/kde/snapshots/current/kdelibs-20010430.ta
 
 Uma outra coisa interessante sobre esse arquivo em si é que nele você pode usar
 comentários, apenas comece seu comentário com dois sinais de porcentagem
-(``%%``) juntos --- disponível em versões do ``cmd/download_sources.bash``
+juntos (``%%``) --- disponível em versões do ``cmd/download_sources.bash``
 que vieram depois do dia 31 de Março de 2022.  
 Mesmo isso não sendo usado oficialmente pelo Copacabana, eu implementei para
 caso precise ser usado no futuro.
 
 ***
 
-# Desempacotando tarballs "101"
+## Desempacotando tarballs "101"
 
 Durante todo esse manual, iremos estar descompactando as tarballs
-por meio de uma pipeline, não apenas com o comando ``tar``(1).
+por meio de um encanamento de E/S, não apenas com o comando ``tar``(1).
 A sintaxe, caso você ainda não conheça, é assim:
 
 ```console
@@ -129,12 +129,13 @@ que você esteja com o diretório de trabalho (``$PWD``) como o diretório
 com o conteúdo da tarball, não como o ``/usr/src``, ``/usr/src/cmp`` ou
 qualquer outra coisa.  
 
-# Compilando a toolchain intermediária 
+## Compilando a toolchain intermediária 
 
 Essa toolchain é *quase* (ênfase no "quase" pois não teremos um núcleo 
 propriamente dito, mas sim um espelhamento do núcleo da máquina hospedeira, além
-de outros vários componentes que estarão faltando) um sistema Linux em *miniroot*
-que iremos usar para compilar o nosso sistema final por meio da Mitzune.  
+de outros vários componentes que estarão faltando) um sistema Linux em
+*miniroot* que iremos usar para compilar o nosso sistema final por meio da
+Mitzune.  
 Compilá-la pode, de primeira, parecer complexo --- falo isso como quem compilou,
 apagou e recompilou a mesma diversas vezes em várias máquinas diferentes desde
 coisa de Março de 2021 e só foi entender o processo de fato recentemente ---
@@ -147,16 +148,54 @@ Ok, vamos lá; isso vai tomar umas duas horas na melhor das hipóteses, então �
 bom não nos extendermos muito aqui.  
 
 ***
-**Nota**: Tenha certeza de que o diretório ``/tools`` está presente e ligado
-simbolicamente (ou "binddado") tanto no ``/`` da máquina hospedeira quanto no
-``/`` do Copacabana (vulgo ``$COPA`` que, no nosso caso, "vale" ``/dsk/0v``).
+**Nota**: Tenha certeza absoluta de que o diretório ``/tools`` está presente e
+ligado simbolicamente (ou "binddado", por meio do ``mount``(8)) tanto no ``/``
+da máquina hospedeira quanto no ``/`` do Copacabana (vulgo ``$COPA`` que, no
+nosso caso, "vale" ``/dsk/0v``).
 
-***
-
+Caso ele esteja ligado simbolicamente, deve aparecer assim quando você executar
+o comando abaixo.
 ```console
 [baggio@S145 src]$ ls -l /tools
 lrwxrwxrwx 1 root root 14 mar 17 14:01 /tools -> /dsk/0v/tools/
 ```
+
+E, caso ele esteja "binddado" (Ave Maria, preciso de um termo melhor para isso)
+por meio do ``mount``(8), ele não deve aparecer como acima com o ``ls``, mas sim
+como um diretório comum, um "ponto de montagem" na prática.
+```console
+[baggio@S145 /]$ ls -l /tools
+total 52K
+drwxr-xr-x  12 baggio      4K May 21 17:41 .
+drwxr-xr-x   1 root       232 Jul  8 20:57 ..
+drwxr-xr-x   2 baggio     12K Jun  5 18:35 bin
+drwxrwxr-x   3 baggio      4K May  4 23:07 etc
+drwxr-xr-x  22 baggio      4K Jun  5 13:52 include
+drwxrwxr-x   2 baggio      4K May 29 03:21 info
+drwxr-xr-x   8 baggio      4K Jun  2 21:33 lib
+lrwxrwxrwx   1 baggio      10 Apr 10 12:18 lib64 -> /tools/lib
+drwxrwxr-x   3 baggio      4K May  7 01:45 libexec
+drwxrwxr-x   4 baggio      4K May 29 03:21 man
+drwxr-xr-x   2 baggio      4K May 27 21:58 sbin
+drwxrwxr-x  14 baggio      4K May 29 21:53 share
+drwxrwxr-x   5 baggio      4K Apr 20 14:58 x86_64-pindoramaCOPACABANA-linux-musl
+[baggio@S145 /]$ file /tools
+/tools: directory
+```
+Para ver se está devidamente bindaddo, você deve usar o ``df``, como no comando
+abaixo.
+```console
+[baggio@S145 /]$ df /tools
+Filesystem              kbytes       used      avail capacity Mounted on
+/dev/loop3p5           4873220    1775616    2830340      37% /dsk/0v
+```
+
+Entretanto, eu recomendaria que você simplesmente use uma ligação simbólica
+simples (até porque a toolchain não passa de um mero *hack* perto do sistema
+final) e, assim, você evitaria possíveis dores de cabeça --- como, por exemplo,
+esquecer de montar o diretório de ``$COPA/tools`` em ``/tools``.
+
+***
 
 ### Biblioteca C musl
 
@@ -171,8 +210,8 @@ essas que devem "apontar" para nossa toolchain intermediária, não para o
 sistema-base (ex.: ``/lib/ld-musl-x86-64.so.1``) e nem para a toolchain inicial
 (``/cross-tools/lib/ld-musl-x86_64.so.1``), caso contrário teremos o clássico erro
 de "``bash: X: No such file or directory``", que é basicamente quando o
-interpretador ELF (que, se minha memória não falha, é o ``ldd``(1)) não encontra a
-biblioteca que o binário "pede" para ser executado.
+interpretador ELF (que, se minha memória não falha, é o ``ldd``(1)) não encontra
+a biblioteca que o binário "pede" para ser executado.
 
 Após essa explicação curta, vamos ao que interessa: compilar a biblioteca C e
 instalá-la no diretório correto.
@@ -231,7 +270,7 @@ Antes de continuarmos, é necessário que nós ajustemos o GCC da toolchain inic
 para usar as bibliotecas da nossa toolchain intermediária.  
 Esse processo é análogo --- para não dizer que é literalmente o mesmo, só que
 menos extenso --- que o apresentado na parte do sistema final, então não
-entrarei em detalhes sobre o que é o arquivo ``specs`` etc.  
+entrarei em detalhes sobre o que é o arquivo specs e afins por hora.  
 
 Exporte essas variáveis no seu shell:
 
@@ -240,7 +279,7 @@ LIBGCC_PATH=$(dirname $(${COPA_TARGET}-gcc -print-libgcc-file-name))
 SPECFILE="$LIBGCC_PATH/specs"
 ```
 
-Agora, faça um despejo do ``specs`` padrão do GCC:
+Agora, faça um despejo do specs padrão do GCC:
 
 ```sh
 ${COPA_TARGET}-gcc -dumpspecs > specs.tmp
@@ -260,7 +299,7 @@ bits.
 
 ***
 
-Agora, por fim, mova o nosso ``specs`` para a nova localização:
+Agora, por fim, mova o nosso specs para a nova localização:
 
 ```sh
 mv ./specs "$SPECFILE"
@@ -308,9 +347,9 @@ nessa toolchain quanto no sistema final. Um exemplo da importância desse pacote
 
 #### 1º: Exporte as variáveis de ambiente ao fim do ``~/.bashrc``
 
-Vá ao ``~/.bashrc`` (sabe, aquele que copiamos do repositório de desenvolvimento
-do Copacabana ao começo da compilação cruzada) e, ao fim do arquivo,
-"descomente" (esse verbo existe formalmente? Não faço ideia) essa linha:
+Vá ao ``~/.bashrc`` (aquele que copiamos do repositório de desenvolvimento do
+Copacabana ao começo da compilação cruzada) e, ao fim do arquivo, "descomente"
+(esse verbo existe formalmente? Não faço ideia) essa linha:
 
 ```sh
 export CC CXX AR AS RANLIB LD STRIP
@@ -407,6 +446,15 @@ cp ld/ld-new /tools/bin
 
 ### GNU Compiler Collection (GCC)
 
+O GNU Compiler Collection é um pacote que contém compiladores para diversas
+linguagens. Inicialmente, surgiu como uma reescrita feita pelo Projeto GNU do
+compilador C, conhecido como ``cc``(1) no UNIX da AT&T --- e, por conta disso,
+ganhou o nome de "gcc", pois os comandos (re)escritos pelo GNU usavam o prefixo
+"g". Logo "**g**``cc``" seria a versão GNU do comando ``cc``(1).  
+Estaremos compilando os compiladores C e C++ do pacote, o que é o suficiente,
+por hora --- enquanto as futuras ferramentas em Go não são escritas ---, para
+compilar todo o sistema-base.  
+
 #### 1º: Bibliotecas extras (GMP, MPC e MPFR)
 
 O GCC depende nas bibliotecas GMP, MPC e MPFR, que são usadas para que o GCC
@@ -438,7 +486,7 @@ agora usando a musl --- mesmo assim, vamos aplicar todos (porque não custa nada
 nem sequer tempo seu).  
 
 Como eu estou considerando que você esteja usando o GNU ~~Broken~~Bourne-Again
-Shell (ou o Korn Shell 93), estarei utilizando um laço de repetição ``for`` no
+Shell (ou o Korn Shell 93), estarei utilizando um laço de repetição \```for``' no
 estilo-C, que nos permite basicamente a pôr toda essa lista de *patches* dentro de
 um elegante e (talvez não-tão) compacto (mas belo) arranjo.  
 
@@ -517,7 +565,7 @@ bibliotecas, mas sim o caminho dos arquivos ``crt[1in].*`` (abreviação de "C
 Run Time") --- a função desses arquivos também será melhor explicada
 posteriormente, mas que em resumo são o "começo de tudo", "o que vem antes do
 ``main()``".[^4] O conteúdo desse macro fará parte, posteriormente, do arquivo
-``specs`` padrão (vulgo "*hardcoded*") do ``gcc`` --- coisa que explicarei
+specs padrão (vulgo "*hardcoded*") do ``gcc`` --- coisa que explicarei
 melhor mais para frente, na parte do reajuste da toolchain intermediária (sim,
 dessa mesmo) para compilar o sistema final.  
 
@@ -599,12 +647,16 @@ sh ../configure                                    \
     --disable-libsanitizer
 ```
 
-Caso você esteja se perguntando o porquê de não estarmos otimizando o GCC nessa
-etapa, é porque simplesmente não é necessário --- sem falar que desabilitar
-completamente quaisquer otimizações faz da compilação bem mais rápida.[^5]
+***
+**Nota**: Caso você esteja se perguntando o porquê de não estarmos otimizando
+o GCC nessa etapa, é porque simplesmente não é necessário --- sem falar que
+desabilitar completamente quaisquer otimizações faz da compilação bem mais
+rápida.[^5]
 Isso foi originalmente adicionado no Musl-LFS do Derrick pelo Firas Khalil
 (``firasuke``, o criador do Glaucus Linux) em 5 de Outubro de 2019[^6] e, por ser
 uma adição útil, decidi trazê-la também para essa *tabula*.  
+
+***
 
 #### 6º: Compile e instale na toolchain
 
@@ -625,8 +677,8 @@ nosso caso sendo o ``/tools``). O grande problema disso tudo é que, em alguns
 casos, isso **pode** fazer com que alguns arquivos de cabeçalho da máquina
 hospedeira acabem indo parar dentro de nossa toolchain.  
 Então, só por uma questão de garantia, para evitar que tenhámos arquivos de
-cabeçalho da Glibc, por exemplo, misturados aos da musl quando formos compilar
-algo, rode o comando abaixo.  
+cabeçalho da biblioteca C GNU, por exemplo, misturados aos da musl quando
+formos compilar algo, rode o comando abaixo.  
 
 Ele primeiro irá apagar todas os diretórios dentro do diretório de *includes* do
 GCC, logo após isso vai também apagar, caso ajam ocorrências, arquivos contendo
@@ -791,7 +843,7 @@ ln -s /tools/lib/libncursesw.so /tools/lib/libcurses.so
 
 Esta é a nossa implementação de um shell POSIX que iremos utilizar nessa
 toolchain, por ser pequena e funcional o bastante. Mais especificamente,
-estaremos utilizando a bifurcação do Almquimist shell originalmente feita pelo
+estaremos utilizando a bifurcação do Almquist shell originalmente feita pelo
 Hebert Xu em 1997 --- e mantida até hoje ativamente, inclusive é utilizada como
 parte do sistema-base do Debian Linux ---, conhecida como "dash"; essa
 bifurcação adiciona várias correções para que funcione no Linux, além de ter
@@ -822,12 +874,12 @@ gmake -j$(grep -c 'processor' /proc/cpuinfo) \
 ### GNU Bison
 
 O GNU Bison é um compilador-de-compilador; em termos literais, ele gera um
-compilador/interpretador/*parser* a partir de um arquivo inicial contendo
-instruções para que tal coisa seja feita --- __análogo__ *ma non uguale* ao m4,
-afinal, por mais que ambos processem padrões informados em um arquivo de entrada
-para um de saída, têm funcionamento interno diferente no que se diz a algoritmos
-implementados, recursos e flexibilidade em si; por mais que, a mero título de
-curiosidade, seja completamente possível se utilizar um processador de macros no
+compilador/interpretador/analisador de sintaxe/*parser* a partir de um arquivo
+inicial contendo instruções para que tal coisa seja feita --- __análogo__ *ma non
+uguale* ao m4, afinal, por mais que ambos processem padrões informados em um arquivo
+de entrada para um de saída, têm funcionamento interno diferente no que se diz a
+algoritmos implementados, recursos e flexibilidade em si; por mais que, a mero título
+de curiosidade, seja completamente possível se utilizar um processador de macros no
 lugar de um compilador-de-compilador em ambientes onde você não tenha um presente,
 como descrito no informe *"A General-Purpose Macro Processor as a Poor Man's
 Compiler-Compiler"* de Andrew S. Tanenbaum de Junho de 1976.[^10]
@@ -944,7 +996,7 @@ básicos de um *hacker* conhecido como ``ryanwoodsmall``[^15] (e, possivelmente,
 intervenção direta do Senhor), eu consegui pôr o Heirloom Toolchest para
 funcionar tanto linkeditado dinamicamente na toolchain --- como iremos fazer
 agora --- quanto linkeditado __estaticamente__ (isso mesmo, estático! Com
-direito ao [n]curses e tudo mais!) no sistema final.[^16]  
+direito ao [n]curses e tudo mais) no sistema final.[^16]  
 
 ***
 **Nota para compilações futuras**: No futuro, seria bom se o grande ``.patch``
@@ -1012,7 +1064,7 @@ Crie um diretório chamado ``bin/``:
 mkdir bin
 ```
 
-E então rode esse laço ``for``:  
+E então rode esse laço de repetição \```for``':  
 
 ```sh
 for i in s42bin pbin p2k1bin 5bin ucb_bin sbin; do
@@ -1051,19 +1103,20 @@ simples do que a que a maioria das distribuições atuais usa.
 ***
 
 ***
-**Nota para mim mesmo no futuro**: Conserte o ``rm``(1) do Heirloom e outras
+**Nota para mim mesmo no futuro**: Consertar o ``rm``(1) do Heirloom e outras
 ferramentas para que sigam o último padrão POSIX, assim, no caso do ``rm``(1),
-evitando erros como o clássico "Your 'rm' program is bad, sorry." ("Seu programa
-'rm' é ruim, perdão.", em tradução literal)[^17] e não teremos de substituí-las
-pelas ferramentas do lobase no sistema final --- por mais que, para isso, você
-possivelmente terá de ter mais conhecimento sobre C do que tem atualmente.  
+vou acabar corrigindo erros como o clássico "Your 'rm' program is bad, sorry."
+("Seu programa 'rm' é ruim, perdão.", em tradução literal)[^17] e não teremos de
+substituí-las pelas ferramentas do lobase no sistema final --- por mais que,
+para isso, você possivelmente terá de ter mais conhecimento sobre C do que tem
+atualmente.  
 ... Ou simplesmente deixar isso de lado, afinal esse "bug" surgiu como resultado
 de *scripting* em Shell feito de forma porca (com todo o respeito aos
 (pseudo-)"intelectuais", "bacharelados" e "profissionais" de ego frágil, e aos
-porcos também --- afinal, não são bestas ao quadrado[^18] para se ofenderem com
-uma crítica técnica), onde os programadores tendiam a simplesmente rodar o
-``rm``(1) passando uma variável (no exemplo, ``$file``) como parâmetro, sem mais
-nem menos:
+porcos também --- afinal, estes não são bestas ao quadrado[^18] para se
+ofenderem com uma crítica técnica), onde os programadores tendiam a simplesmente
+rodar o ``rm``(1) passando uma variável (no exemplo, ``$file``) como parâmetro,
+sem mais nem menos:
 ```sh
 rm -f $file
 ```  
@@ -1137,7 +1190,8 @@ algumas falhas de desenho da versão antiga.
 Estaremos usando essa versão pois, além dela ser menor do que o GNU AWK, ela é
 mantida ativamente e contém a maioria dos recursos que o GNU AWK oferece --- e,
 além do mais, dificilmente encontraremos algum programa que use uma função
-específica do GNU AWK (como, sei lá, ``--bignum``?[^20]) no sistema de compilação.  
+específica do GNU AWK (como ``--bignum``, por exemplo[^20]) no sistema de
+compilação.  
 Então, em suma, essa implementação, até onde testei nos últimos 5 a 6 meses, cai
 como uma luva para nossa toolchain intermediária.
 
@@ -1214,8 +1268,8 @@ foi portada para Linux.[^22]
 ***
 **Nota**: No manual original do Linux from Scratch e no Musl-LFS do Derrick, que
 usam ferramentas do Projeto GNU, o File é compilado __antes__ do AWK e das GNU
-Findutils[^23] --- essas que não compilamos pois tanto o Heirloom Toolchest quanto o
-lobase já nos provem ferramentas análogas ---, isso porque o sistema de
+Findutils[^23] --- essas que não compilamos pois tanto o Heirloom Toolchest
+quanto o lobase já nos provem ferramentas análogas ---, isso porque o sistema de
 compilação do GNU depende do comando ``file``(1) para fazer algumas
 verificações --- as quais não vou conseguir precisar exatamente pois... o
 arquivo configure gerado pelo GNU auto\*tools é enorme; mas sei que o
@@ -1283,10 +1337,10 @@ for i in 'msgfmt' 'msgmerge' 'xgettext'; do
 done
 ```
 
-### Sortix libz (fork da zlib)
+### Sortix libz (bifurcação da zlib)
 
 A libz do Sortix (irei chamar de "libz", para manter as coisas mais simples) é
-um fork da zlib que contém diversas mudanças, entre elas uma limpeza
+uma bifurcação da zlib que contém diversas mudanças, entre elas uma limpeza
 considerável no código, que vai desde a remoção de algumas abstrações (como
 ``z_const`` e ``z_NULL``, por exemplo), reestruturação de sintaxe (de C K&R para
 C ANSI) e a remoção do suporte para plataformas antigas e sistemas
@@ -1363,28 +1417,30 @@ Jean-loup trabalhou na parte de compressão e Mark na de descompressão **da
 biblioteca**, sem mais nem menos.  
 O gzip (e a zlib) foram criados inicialmente como uma tentativa de se criar uma
 alternativa completamente livre --- sem patentes ou *royalties* --- aos comandos
-``compress``(1) e ``uncompress``(1), presentes em diversos sistemas UNIX-compatíveis.  
-Só tinha um único problema nessa história: ao contrário de outros programas/comandos
-já antes reimplementados, o algoritmo empregado, o LZW (**L**empel–**Z**iv–**W**elch),
-estava protegido sob patentes de propriedade da Unisys e da IBM[^35] --- essas que
-eventualmente expirariam em 20 de Junho de 2003 nos Estados Unidos da América[^36],
-coisa de aproximadamente 11 anos depois do lançamento da zlib, o que seria, num momento
-de popularização da Internet e da necessidade de transferir arquivos (principalmente
-imagens, no meio mais convencional/doméstico de usuários), uma espera impraticável e que
-faria qualquer desenvolvedor que precisasse de compressão em seu programa refém
-da Unisys ou de algum algoritmo de compressão inferior em velocidade ou taxa de
-compressão durante esse tempo ---, o que impedia que ferramentas pudessem utilizá-lo sem
-permissão prévia mediante pagamento de uma taxa fixa e 1,5% (ou 0,15 US$, o que
-fosse maior ao fim da soma do total) por cópia distribuída e registrada ---
-isto **apenas** para aplicações envolvendo GIFs, não usando o usando o algoritmo
-independentemente.[^37]  
+``compress``(1) e ``uncompress``(1), presentes em diversos sistemas
+UNIX-compatíveis.  
+Só tinha um único problema nessa história: ao contrário de outros
+programas/comandos já antes reimplementados, o algoritmo empregado, o LZW
+(**L**empel–**Z**iv–**W**elch), estava protegido sob patentes de propriedade da
+Unisys e da IBM[^35] --- essas que eventualmente expirariam em 20 de Junho de
+2003 nos Estados Unidos da América[^36], coisa de aproximadamente 11 anos depois
+do lançamento da zlib, o que seria, num momento de popularização da Internet e
+da necessidade de transferir arquivos (principalmente imagens, no meio mais
+convencional/doméstico de usuários), uma espera impraticável e que faria
+qualquer desenvolvedor que precisasse de compressão em seu programa refém da
+Unisys ou de algum algoritmo de compressão inferior em velocidade ou taxa de
+compressão durante esse tempo ---, o que impedia que ferramentas pudessem
+utilizá-lo sem permissão prévia mediante pagamento de uma taxa fixa e 1,5% (ou
+0,15 US$, o que fosse maior ao fim da soma do total) por cópia distribuída e
+registrada --- isto **apenas** para aplicações envolvendo GIFs, não usando o
+usando o algoritmo independentemente.[^37]  
 No meio dessa correria, após várias tentativas e ideias (inclusive a de
 "descompatar" os arquivos GIF) resolveu-se criar uma biblioteca completamente
 livre, implementando um algoritmo sem patentes e que pudesse substituir
-completamente o LZW. Se acabou com a zlib implementando o DEFLATE, esse que se provou
-mais eficiente que o LZW --- tal afirmação é feita pelo website do gzip, todavia não
-ligando a nenhum outro artigo que mostre, por meio de *benchmarks* ou
-*footprints*, a superioridade do DEFLATE em relação ao LZW; por mais que, por
+completamente o LZW. Se acabou com a zlib implementando o DEFLATE, esse que se
+provou mais eficiente que o LZW --- tal afirmação é feita pelo website do gzip,
+todavia não ligando a nenhum outro artigo que mostre, por meio de *benchmarks*
+ou *footprints*, a superioridade do DEFLATE em relação ao LZW; por mais que, por
 experimentos empíricos, possamos constatar que é verdade.   
 
 #### 1º: Pequeno ajuste no ``Makefile``
@@ -1424,6 +1480,11 @@ done \
 
 ### XZ-Utils do Tukaani
 
+Esse pacote provê a ferramenta de compressão ``xz`` entre algumas outras,
+que funciona nos moldes do gzip e, como disse antes, do bzip2.  
+Estaremos instalando-o pois alguns pacotes --- entre eles, o próprio núcleo
+Linux --- estão compactados com o xz.
+
 #### 1º: Rode o *script* ``configure``
 
 ```sh
@@ -1447,7 +1508,7 @@ se manter programas que fossem montados a partir de várias operações seguidas
 numa certa quantidade de arquivos[^39], o que acabou por facilitar e muito a
 vida de programadores e não-programadores (até porque o Make não necessariamente
 precisaria ser usado para código-fonte, mas também para documentos em Roff por
-exemplo) no futuro --- que foi criado(?) (se "forkeado" da árvore de código-fonte
+exemplo) no futuro --- que foi criado(?) (se bifurcado da árvore de código-fonte
 de outro programa maior já existente ou se foi escrita na mão do zero, não sei
 informar ao certo; não ficou muito claro no registro de mudanças (``ChangeLog.1``))
 em 1988 por Roland McGrath[^40] e, posteriormente (apenas após 1995, pelo o que
@@ -1500,11 +1561,12 @@ cd "$COPA/usr/src/cmp/stripped-lobase-20180406-original/usr.bin/patch" \
 ### GNU sed
 
 ***
-**Nota**: No Musl-LFS do Derrick, ele espera que você ainda não tenha o sed na toolchain e
-que você tenha o GNU sed na máquina hospedeira, por isso o GNU sed vem após o
-Perl; mas, no Copacabana, nós já temos uma implementação do ``sed``(1) vinda do
-Heirloom que, pela hierarquia do ``$PATH``, "sobrepõe" a da máquina hospedeira
-(esperada ser a do GNU) e faz com que tenhamos que compilar o GNU sed antes.  
+**Nota**: No Musl-LFS do Derrick (e muito possivelmente também no livro do Linux
+from Scratch), ele espera que você ainda não tenha o sed na toolchain e que você
+tenha o GNU sed na máquina hospedeira, por isso o GNU sed vem após o Perl; mas,
+no Copacabana, nós já temos uma implementação do ``sed``(1) vinda do Heirloom
+que, pela hierarquia do ``$PATH``, "sobrepõe" a da máquina hospedeira (esperada
+ser a do GNU) e faz com que tenhamos que compilar o GNU sed antes.  
 
 ***
 
@@ -1546,6 +1608,11 @@ gmake -j$(grep -c 'processor' /proc/cpuinfo) \
 
 ### Perl
 
+O Perl provê um interpretador para a linguagem de programação de mesmo nome;
+será necessário que tenhámos um interpretador da linguagem Perl na toolchain
+pois alguns programas --- entre eles, o próprio núcleo Linux --- fazem uso de
+*scripts* em Perl em seus sistemas de montagem.  
+
 #### 1º: Aplique os *patches* do pacote perl-cross
 
 O pacote perl-cross, que está no mesmo diretório do Perl em si, contém arquivos
@@ -1584,7 +1651,26 @@ gmake -j$(grep -c 'processor' /proc/cpuinfo) \
 	&& gmake install
 ```
 
-### TAR do "Schily" (star ou simplesmente ``tar``(1))
+### TAR do "Schily" (vulgo star, s-tar ou simplesmente ``tar``(1))
+
+Essa é uma das várias implementações do comando ``tar``(1), bifurcada por
+Jörg "Schily" Schilling a partir de uma implementação originalmente publicada no
+Grupo de Usuários da Sun [Microsystems] (Sun Users Group) em 1982 e que, por
+conta disso, seria a implementação de código-aberto mais antiga do ``tar``(1)
+existente[^44] --- por mais que, segundo investigações feitas por Thomas E. Dickey
+em seu artigo "*TAR versus Portability*", essa história tenha vários furos.[^45]  
+Também é frequentemente dito por Schilling que o s-tar seria a implementação
+mais rápida do ``tar``(1) para UNIX[^46]; mas tal afirmação também é questionada
+por Dickey em seu artigo, pois Schilling não apresentou nenhuma pegada (*footprint*)
+ou *benchmark* provando tal afirmação --- algo que podemos também questionar e
+ir atrás posteriormente, não a fim de "crucificar" o Schilling como mentiroso,
+mas talvez até para provar a tal afirmação em si.  
+
+Mesmo com essa intriga entre as duas partes, o s-tar é um programa excelente e,
+por conta disso, decidi selecioná-lo como implementação padrão do ``tar``(1)
+tanto para o sistema-base quanto para essa toolchain.  
+Não quero me meter na intriga dos dois, até porque eles que são brancos que se
+entendam.
 
 #### 1º: Aplique os *patches*
 
@@ -1618,13 +1704,13 @@ patch -p1 -d ./star-1.6/ < \
 #### 2º: Compile e instale na toolchain
 
 ***
-**Nota**: Por conta do sistema de compilação do Schilling (e de tal gambiarra,
-por assim dizer, para que programas utilizando-o compilem com o GNU Make ao
-invés de seu "Schily SunPro Make"), o star toma um tempo considerável para
-compilar --- mesmo numa máquina recente com um AMD Ryzen 5 3500U e 12GB de
-memória RAM e utilizando todos os 8 núcleos (por meio da opção ``-j`` de
-paralelização do GNU Make), ele leva ≃4min3.76sec para o processo de compilação
-e linkedição.  
+**Nota**: Por conta do sistema de montagem próprio do Schilling (e de tal
+gambiarra, por assim dizer, para que programas utilizando-o compilem com o
+GNU Make ao invés de seu "Schily SunPro Make"), o star toma um tempo
+considerável para compilar --- mesmo numa máquina recente com um AMD Ryzen
+5 3500U, 12GB de memória RAM e utilizando todos os 8 fios de execução (por
+meio da opção ``-j`` de paralelização do GNU Make), ele leva ≃4min3.76sec
+para o processo de compilação e linkedição.  
 Se você estiver numa máquina menos potente do que essa, possivelmente vai levar
 5 ou 6 minutos. Logo, aproveite e passe um café ou um chá --- ou, se não estiver
 com muita pressa, saia para caminhar.  
@@ -1637,6 +1723,13 @@ gmake -j$(grep -c 'processor' /proc/cpuinfo) \
 ```
 
 ### GNU Texinfo
+
+O GNU Texinfo provê uma ferramenta de análise sintática para uma linguagem de
+formatação de texto de mesmo nome.  
+Pelos meus testes (e pela lista de dependências do Linux from Scratch 9.0), é
+necessária para compilar alguns pacotes, entre eles o FLex --- todavia, acredito
+que eu possa estar equivocado, então no futuro talvez a gente consiga deixar o
+Texinfo de lado.
 
 #### 1º: Rode o *script* ``configure``
 
@@ -1653,7 +1746,102 @@ gmake -j$(grep -c 'processor' /proc/cpuinfo) \
 	&& gmake install
 ```
 
-### 
+### **F**ast **Lex**ical Analyzer Generator (vulgo flex ou simplesmente ``lex``(1))
+
+O flex provê uma ferramenta para análise léxica de arquivos a fim de
+convertê-los em código-fonte compilável(? É essa palavra mesmo?) em C ou outra
+linguagem suportada. Normalmente é utilizado para criar ferramentas de análise
+sintática para linguagens de programação (como o ``bc.y`` do Heirloom Toolchest)
+ou para linguagens de formatação de texto.  
+É análogo ao GNU m4 e ao GNU Bison nesse sentido, todavia ele não atribui
+significado específico a uma expressão dada, "apenas" substitui palavras normais por
+palavras-chave (ou "*tokens*") e então, aí sim, o analizador sintático atribui
+significado prático à tal expressão.  
+
+#### 1º: Rode o *script* ``configure``
+
+```sh
+HELP2MAN=$(which true) \
+ac_cv_func_malloc_0_nonnull=yes \
+ac_cv_func_realloc_0_nonnull=yes \
+./configure --prefix=/tools \
+	--host=$COPA_TARGET \
+	--build=$COPA_HOST
+```
+
+***
+**Nota**: Caso você esteja se perguntando sobre o porquê de estarmos forçando o
+GNU auto\*conf, ao pré-definirmos as variáveis de cachê (``cv``, *cache
+variable* em inglês) ``ac_cv_func_malloc_0_nonnull`` e
+``ac_cv_func_realloc_0_nonnull`` como "``yes``"[^47], a utilizar o ``*malloc()``
+e o ``*realloc()`` da biblioteca C da toolchain antes dele sequer testar de fato
+qual utilizar --- caso nossa toolchain não tivesse, ele utilizaria o
+``malloc.c`` e o ``realloc.c`` da Gnulib (ou de uma implementação própria do
+pessoal do Flex)[^48] ---, é a fim de corrigir o erro abaixo.
+
+```console
+gmake[2]: *** [Makefile:1696: stage1scan.c] Segmentation fault (core dumped)
+gmake[2]: Leaving directory '/dsk/0v/usr/src/cmp/flex-2.6.4/src'
+gmake[1]: *** [Makefile:546: all] Error 2
+gmake[1]: Leaving directory '/dsk/0v/usr/src/cmp/flex-2.6.4/src'
+gmake: *** [Makefile:533: all-recursive] Error 1
+[baggio@S145 flex-2.6.4]$
+```
+
+Esse erro originalmente foi percebido pelos autores e contribuidores do manual
+Cross-Compiled Linux from Scratch (que chamarei apenas de "CLFS", por uma
+questão de simplicidade) em uma data que não consigo precisar e foi publicado em
+26 de Julho de 2009, na edição ``SVN-0.0.1-20090726-x86`` do manual "Sysroot" ---
+que corresponderia ao nosso sistema-base.  
+No CLFS, o erro é meramente citado como resultado do *script* ``configure``
+falhando em configurar os valores corretos, sem muita explicação adicional.[^49]
+De fato, é isso que ocorre:  em seus (vários) testes pela presença de uma
+implementação do ``*malloc()`` e ``*realloc()`` dentro do cabeçalho ``stdlib.h``,
+acabam por algum motivo falhando e, por conta disso, o *script* configura para
+que se utilize a implementação "embutida" do flex para as funções ao invés de usar
+a nativa da biblioteca C. Isso acaba fazendo com que, por algum motivo que não
+consigo explicar direito ainda por falta de conhecimento em C --- o ``stage1flex``
+gere uma falha de segmentação quando executado, como se estivesse tentando acessar
+um endereço ilegal na memória.  
+
+Eu imagino que essa parte devesse estar na seção de solução de problemas, mas ao
+mesmo tempo não vejo necessidade já que estamos previnindo esse erro antes que
+sequer ocorra.  
+
+***
+
+#### 2º:  Compile e instale na toolchain
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
+### Vi Improved (vulgo Vim ou ``vim``(1))
+
+O Vim é uma reimplementação (com diversas melhorias, tanto é que seu nome é, em
+tradução, "Vi Melhorado") do editor vi, esse que surgiu originalmente em 1976 e
+foi criado por Bill Joy.  
+O Vim foi criado por Brian Moolenar no ano de 1990. Foi originalmente bifurcado
+de um clone do vi para computadores Amiga e, posteriormente, foi portado para
+UNIX-compatível.  
+
+#### 1º: Rode o *script* ``configure``
+
+```sh
+./configure --prefix=/tools \
+	--host=$COPA_TARGET \
+	--target=$COPA_HOST \
+	--without-gui	\
+	--without-x
+```
+
+#### 2º:  Compile e instale na toolchain
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
 
 # Preparando o ambiente de *chroot* para o sistema final
 
@@ -1670,7 +1858,7 @@ um FHS completo ainda.
 
 Para popular nosso FHS, assim nos permitindo finalizar o sistema,
 "entre" dentro do diretório setado em ``$COPA`` (no nosso caso,
-``/dsk/0v``) e logado como usuário ``root``, rode o *script*
+``/dsk/0v``) e logado como usuário \```root``', rode o *script*
 ``cmd/populate_fhs.ksh``.
 Esse *script* automaticamente vai gerar toda a estrutura de diretórios
 necessária para a compilação do sistema final.
@@ -1705,7 +1893,7 @@ doas mknod $COPA/dev/null c 1 3
 doas chmod 666 $COPA/dev/null
 ```
 
-## Importando o prefix da Mitzune
+## Importando o prefixo da Mitzune
 
 No usuário no qual você instalou a Mitzune, que deve ser o seu
 próprio usuário pessoal, você deverá importar o prefixo do chroot
@@ -1721,7 +1909,7 @@ L.E.``mount`` ou ele seja um disco secundário (no caso, já havia
 um ou outros montados anteriormente), você precisará editar o
 arquivo ``chroot.mit`` e trocar o conteúdo da variável ``COPA``.
 
-# Entrando em chroot
+## Entrando em chroot
 
 Apenas digite o comando para a Mitzune executar o prefixo do
 Copacabana.
@@ -1735,7 +1923,7 @@ mitzune -n copacabana -r
 A partir desse ponto, tudo, absolutamente tudo que for feito aqui
 é para ser feito dentro do ambiente de chroot da Mitzune.
 
-## Pegapácapá: criando (outros) arquivos especiais, ligando binários básicos etc
+### Pegapácapá: criando (outros) arquivos especiais, ligando binários básicos etc
 
 Essa parte é bem chata de se fazer manualmente, mas já que eu já
 me dei ao trabalho de fazer isso antes, você possivelmente só vai
@@ -1745,13 +1933,13 @@ consolidar o processo de compilação.
 
 Primeiramente, por uma questão de compatibilidade dos *scripts* de
 configure e com os Makefiles que serão rodados nesse estágio,
-precisamos criar alguns *hacks* temporários no *filesystem* para
-não termos nenhum problema de "``x: command not found``".
+precisamos criar alguns *hacks* temporários no sistema de arquivos
+para não termos nenhum problema de "``x: command not found``".
 
 Como nosso sistema não vai ter ligações simbólicas em binários e nem
 em bibliotecas (apenas em arquivos essenciais como o ``/etc/mtab``,
 enquanto não arrumo uma solução melhor), é fácil identificar o que
-fora temporário ou não no fim da compilação.
+fora temporário (ou não) no fim da compilação.
 
 ```sh
 for i in cat dd echo install ksh ln pwd rm sh stty; do
@@ -1773,12 +1961,12 @@ ln -s /tools/bin/perl /usr/bin
 ```
 
 Segundo o Linux From Scratch original, essas bibliotecas do GCC são
-necessárias para a compilação do sistema final pois a Glibc precisaria
-tanto da ``libstdc++`` para testes quanto da ``libgcc_s`` para ter a
-pthreads funcional.[2]
-Como estamos usando a musl libc, acredito que essas bibliotecas não
-seriam necessárias para compilar a biblioteca C em si; entretanto, como
-esse processo também é descrito "por cima" no livro do Derrick ---
+necessárias para a compilação do sistema final pois a biblioteca C GNU
+precisaria tanto da ``libstdc++`` para testes quanto da ``libgcc_s``
+para ter a pthreads funcional.[^50]
+Como estamos usando a biblioteca C musl, acredito que essas bibliotecas
+não seriam necessárias para compilar a biblioteca C em si; entretanto,
+como esse processo também é descrito "por cima" no livro do Derrick ---
 no qual estou me baseando --- estou repetindo-o aqui; em qualquer
 momento essa parte pode ser removida caso for provado que essas
 bibliotecas não são necessárias para compilar a musl (ou qualquer
@@ -1791,19 +1979,19 @@ for i in libgcc_s.so libgcc_s.so.1 libstdc++.a libstdc++.so \
 done
 ```
 
-Por uma questão de compatibilidade, faz-se a ligação  do arquivo
-``/proc/self/mounts`` para o ``/etc/mtab``.
+Por uma questão de compatibilidade, faz-se a ligação simbólica do
+arquivo ``/proc/self/mounts`` para o ``/etc/mtab``.
 O ``/etc/mtab`` existiu no passado a fim de suprir uma necessidade de
 UNIXes mais antigos, que era a de poder ler a informação de discos
-montados, mas sem ter, exatamente, uma *syscall* (ou até mesmo um
-*pseudo-filesystem* virtual) para isso. Cada programa que mexesse
-com discos e afins (ex.: ``df``(1), que lê os discos montados no sistema)
-deveria, por conta própria do desenvolvedor, escrever ou ler deste arquivo.
-Com o advento do procfs --- que, se não me engano, surgiu no Plan 9 --- a
-comunicação de programas/*scripts* da *userland* com o núcleo ficou mais
-simplificada e unificada e, consequentemente, métodos antiquados e
-complexos começaram a ser deixados de lado aos poucos --- e um deles é o
-``/etc/mtab``.
+montados, mas sem ter, exatamente, uma chamada de sistema (no inglês
+"*system call*" ou "*syscall*" (ou até mesmo um *pseudo-filesystem*
+virtual) para isso. Cada programa que mexesse com discos e afins (ex.:
+``df``(1), que lê os discos montados no sistema) deveria, por conta
+própria do desenvolvedor, escrever ou ler deste arquivo. Com o advento
+do procfs --- que, se não me engano, surgiu no Plan 9 --- a comunicação
+de programas/*scripts* da *Userland* com o núcleo ficou mais simplificada
+e unificada e, consequentemente, métodos antiquados e complexos começaram
+a ser deixados de lado aos poucos --- e um deles é o ``/etc/mtab``.
 Como várias aplicações ainda dependem fortemente do ``/etc/mtab`` ---
 inclusive algumas do Heirloom Toolchest, ao menos presumo pela idade do
 código-fonte em si --- fazemos essa ligação para que essas aplicações
@@ -1813,7 +2001,7 @@ funcionem como esperado.
 ln -s /proc/self/mounts /etc/mtab
 ```
 
-Para que o usuário ``root`` (e outros posteriores) possam fazer logon no
+Para que o usuário \```root``' (e outros posteriores) possam fazer *logon* no
 sistema (e para que eles sequer existam), a criação dos arquivos
 ``/etc/passwd`` e do ``/etc/group`` é necessária, afinal trata-se de uma
 base de dados contendo os usuários e grupos no sistema.
@@ -1850,11 +2038,11 @@ users:x:999:
 EOF
 ```
 
-Por último, devemos criar os arquivos de log que
+Por último, devemos criar os arquivos de registro que
 serão escritos pelo `agetty`, `login` e `init`
 posteriormente e então dá-los as permissões corretas.
-Isso porque esses programas apenas escrevem o log e
-não criam o arquivo por alguma razão.
+Isso porque esses programas apenas os escrevem e não
+os criam por alguma razão.
 
 ```sh
 for i in btmp lastlog faillog wtmp; do
@@ -1865,38 +2053,117 @@ chgrp utmp /var/adm/lastlog
 chmod 664 /var/adm/lastlog
 chmod 600 /var/adm/btmp
 ``` 
+### Compilando pacotes do sistema final
 
-## Compilando os pacotes
+Essa é a parte em que vamos compilar todos os pacotes do sistema final.
+Recomendo que você, já no shell do ambiente da Mitzune, configure a variável
+``CFLAGS`` e ``CXXFLAGS`` --- e evite usar configurações muito específicas caso
+esteja compilando para outra máquina ou para redistribuir.  
+
+#### Configurando as ``CFLAGS``
+
+As ``CFLAGS``/``CXXFLAGS`` que estou utilizando para as tarballs oficiais do
+Copacabana são essas:  
+
+```sh
+# CFLAGS/CXXFLAGS genéricas para programas
+# que usem Makefiles ou scripts configure
+CFLAGS='-O2 -march=x86-64 -mcpu=znver2 -pipe'
+CXXFLAGS="$CFLAGS"
+# CFLAGS para o KBuild (núcleo Linux)
+KCFLAGS="$CFLAGS"
+```
+
+Essa linha de configuração significa o seguinte:
+
+- ``-02``: Nível de otimização médio, pois concilia um tempo relativamente
+  pequeno de compilação com a melhor performance dos binários para aquela
+arquitetura, sem que se perca estabilidade[^51];
+- ``-march=x86-64``: Monta os binários para a arquitetura ``x86-64`` que, nesse
+  caso, representa apenas um processador de x86 de 64-bits genérico, assim não
+prejudicando a compatibilidade com outras plataformas. Veja a nota que coloquei
+abaixo dessa seção[^52];
+- ``-mcpu=znver2``: Optimiza o código para processadores da AMD com
+  microarquitetura Zen, versão 2;
+- ``-pipe``: __Teoricamente__ aumenta a velocidade de compilação em máquinas com
+armazenamento em discos rígidos mecânicos (conhecidos como "HDD" ou simplesmente
+"HD") --- ou discos não necessariamente mecânicos, mas com baixa velocidade em
+operações de E/S ---, ao utilizar encanamentos (*pipes*, em inglês) ao invés de
+arquivos temporários no momento da compilação.[^53] Assim, o compilador não
+precisaria "conversar" (acessar, escrever e então ler) com o disco múltiplas vezes,
+mas sim apenas passar a informação pelo encanamento para o próximo processo.
+Isso se mostra útil, principalmente, em projetos montados com o compilador sendo
+executado paralelamente em vários fios de execução (a famigerada opção ``-j``
+presente no Make). A única desvantagem em si é o relativo alto consumo de memória
+RAM, pois você terá constantemente dois programas que consomem muita memória sendo
+executados simultaneamente de forma direta --- no caso, o compilador (no nosso
+caso, o ``gcc``) e o montador (no nosso caso, o ``gas``), que normalmente seriam
+executados em forma hierárquica e não-paralela, com o compilador primeiro
+compilando o código-fonte para a linguagem de montagem de sua arquitetura
+e então chamando o montador para gerar o binário.
+Se você tiver menos do que 2GB de memória RAM e não tiver o espaço de troca
+habilitado, não é recomendado que se utilize essa opção, pois você corre o risco de
+ter o processo morto pelo próprio núcleo Linux (utilizando o mecanismo OOM[^54]) numa
+tentativa de impedir que tal utilize toda a memória.
+
+***
+**Nota**: Eu não coloquei o ``-march`` como ``znver2`` pois, caso eu tivesse
+feito isso, ele iria gerar código de máquina especificamente para processadores
+dessa série, e isso poderia fazer com que o Copacabana viesse a rodar com
+desempenho abaixo do normal ou ter problemas mais sérios em outros processadores.  
+Já, o ``-mcpu`` "apenas" otimiza os binários para a microarquitetura indicada,
+mas sem comprometer o funcionamento dele em si.  
+
+***
+
+
+Outra coisa importante de se citar é que, por padrão, todos os pacotes
+compilados para o sistema-base devem ser linkeditados estaticamente. Isso já
+foi dissertado e explicado anteriormente. Entretanto, não preocupe-se com
+isso: você não vai precisar declarar ``-static`` nas suas
+``CFLAGS``/``CXXFLAGS``, pois os *patches* que você vai aplicar durante o
+processo ou opções de linha de comando citadas nessa *tabula* já o farão
+para você.
 
 ### Cabeçalhos do núcleo Linux
 
 ***
 **Nota**: Caso você esteja tentando poupar tempo e conveniência
-e esteja usando a antiga source-tree (que foi usada para o
+e esteja usando a antiga árvore de código-fonte (que foi usada para o
 ``cross-tools`` e para o ``tools`` anteriormente), é aconselhado pelo
-manual original do Linux from Scratch que você limpe a
-source-tree usando o comando ``gmake mrproper``.
+manual original do Linux from Scratch que você limpe-a usando o
+comando ``gmake mrproper``.
 
 ***
 
-#### 1º: Aplique o patch para que o Linux possa ser compilado em cima da musl libc.
+#### 1º: Aplique o *patch* para que o Linux possa ser compilado em cima da biblioteca C musl
 
-Esse patch faz com que o arquivo ``swab.h`` use o cabeçalho ``stddef.h``
+***
+**Nota**: Assim como na seção anterior, da toolchain intermediária, eu também
+estou considerando que você ainda não está dentro do diretório-alvo do nosso
+*patch*.  
+Nesse caso, apenas mude ``-d ./linux-5.10.105/`` por ``-d .``.  
+
+***
+
+Esse *patch* faz com que o arquivo ``swab.h`` use o cabeçalho ``stddef.h``
 ao invés do ``compiler.h``; isso adiciona uma definição do
 ``__always_inline``, que é necessária para que o cabeçalho possa ser
-compilado fora da glibc.[3]
+compilado fora da biblioteca C do GNU.[^55]
 
 ```sh
-patch -Np1 -d . < /usr/src/copacabana/patches/linux-5.10.105/include-uapi-linux-swab-Fix-potentially-missing-__always_inline.patch
+patch -Np1 -d ./linux-5.10.105/ < \
+    /usr/src/copacabana/patches/linux-5.10.105/include-uapi-linux-swab-Fix-potentially-missing-__always_inline.patch
 ```
 
-#### 2º: Gere os cabeçalhos.
+#### 2º: Gere os cabeçalhos
 
 ```console
 gmake headers
 ```
 
-#### 3º: Instale-os no sistema.
+#### 3º: Instale-os no sistema
+
 Primeiro, copiaremos tudo da árvore de código-fonte do Linux.
 
 ```sh
@@ -1916,19 +2183,27 @@ rm -v /usr/include/Makefile
 Todavia, mesmo esses arquivos sendo, nesse momento, desnecessários, eles são
 extremamente úteis na hora de se compilar o núcleo Linux por completo. O sistema
 de compilação do núcleo Linux faz uso dos tais a fim de acelerar a compilação do
-núcleo, ao evitar que o GNU Make seja invocado desnecessariamente[4] --- mas, como
+núcleo, ao evitar que o GNU Make seja invocado desnecessariamente[^56] --- mas, como
 apenas queremos os cabeçalhos, podemos simplesmente apagá-los de nosso
 ``/usr/include``.
 
-### Biblioteca C musl com cabeçalhos de compatibilidade e extras
+### Biblioteca C musl
 
-#### 1º: Aplique os *patches* necessários para o funcionamento esperado da musl libc no sistema.
+#### 1º: Aplique os *patches* necessários para o funcionamento esperado da biblioteca C musl no sistema.
+
+***
+**Nota**: Assim como na seção anterior, da toolchain intermediária, eu também
+estou considerando que você ainda não está dentro do diretório-alvo do nosso
+*patch*.  
+Nesse caso, apenas mude ``-d ./musl-1.2.1/`` por ``-d .``.  
+
+***
 
 Este primeiro *patch* é, de longe, o mais simplório, visto que ele
 só conserta os caminhos de diretório para o Copacabana.
 
 ```sh
-patch -Np1 -d . < /usr/src/copacabana/patches/musl-1.2.1/fix-paths.patch
+patch -Np1 -d ./musl-1.2.1/ < /usr/src/copacabana/patches/musl-1.2.1/fix-paths.patch
 ```
 
 ***
@@ -1939,15 +2214,15 @@ Neste caso, o arquivo seria o ``include/paths.h``.
 
 ***
 
-O `handle-aux-at_base.patch` é dito necessário, em uma curta
-descrição no cabeçalho[4], para que o *stub* do interpretador
+O ``handle-aux-at_base.patch`` é dito necessário, em uma curta
+descrição no cabeçalho[^57], para que o *stub* do interpretador
 ELF do gcompat funcione com alguns binários que já foram
-comprimidos de alguma maneira (ditos "packed binaries")[5].  
+comprimidos de alguma maneira (ditos "packed binaries")[^58].  
 Todavia, eu gostaria de poder explicar melhor o que esse
-patch faz posteriormente.
+*patch* faz posteriormente.
 
 ```sh
-patch -Np1 -d . < /usr/src/copacabana/patches/musl-1.2.1/handle-aux-at_base.patch
+patch -Np1 -d ./musl-1.2.1/ < /usr/src/copacabana/patches/musl-1.2.1/handle-aux-at_base.patch
 ```
 
 O ``syscall-cp-epoll.patch``? Bem, infelizmente não achei
@@ -1956,19 +2231,19 @@ em si e/ou porque devemos aplicá-lo, mas como esta
 *tabula* é aberta, faça um *commit* com o que você descobrir.
 
 ```sh
-patch -Np1 -d . < /usr/src/copacabana/patches/musl-1.2.1/syscall-cp-epoll.patch
+patch -Np1 -d ./musl-1.2.1/ < /usr/src/copacabana/patches/musl-1.2.1/syscall-cp-epoll.patch
 ```
 
-#### 2º: Rode o script configure.
+#### 2º: Rode o *script* ``configure``.
 
 ```sh
 LDFLAGS="-Wl,-soname,libc.musl-$(uname -m).so.1" \
-sh configure --prefix=/usr \
-            --sysconfdir=/etc \
-            --localstatedir=/var \
-            --mandir=/usr/share/man \
-            --infodir=/usr/share/info \
-            --disable-gcc-wrapper
+./configure --prefix=/usr \
+	--sysconfdir=/etc \
+	--localstatedir=/var \
+	--mandir=/usr/share/man \
+	--infodir=/usr/share/info \
+	--disable-gcc-wrapper
 ```
 
 #### 3º: Compile e instale no sistema
@@ -1978,49 +2253,62 @@ gmake -j$(grep -c 'processor' /proc/cpuinfo) && gmake install
 ```
 
 Após instalar, vamos primeiro realocar os arquivos no nosso sistema.
-Geralmente, bibliotecas dinamicamente linkeditadas (com final `.so.*`),
-ficam na Systemland (`/`), enquanto bibliotecas estáticas (com final
-`.a`) ficam na Userland (`/usr` para cima).
+Geralmente, bibliotecas dinamicamente linkeditadas (com final ``.so.*``),
+ficam na *Systemland* (``/``), enquanto bibliotecas estáticas (com final
+``.a``) ficam na *Userland* (``/usr`` para cima).
 Isso por uma questão lógica de dependência: imagine, hipoteticamente
-falando, que você precise rodar seu sistema sem o `/usr` montado por
+falando, que você precise rodar seu sistema sem o ``/usr`` montado por
 alguma razão. Você não poderia ter a biblioteca dinamicamente
-linkeditada lá, pois quaisquer programas da Systemland que dependessem
+linkeditada lá, pois quaisquer programas da *Systemland* que dependessem
 de tal biblioteca dinamicamente não poderiam rodar.
+
+Primeiro, delete a ligação simbólica antiga do ``/usr/lib/libc.so`` para o
+``/lib/ld-musl-$(uname -m).so``:
+
+```sh
+rm /lib/ld-musl-$(uname -m).so
+```
+
+Depois, mova o ``/usr/lib/libc.so`` para o ``/lib/ld-musl-$(uname -m).so.1``.
 
 ```sh
 mv /usr/lib/libc.so /lib/ld-musl-$(uname -m).so.1
 ```
 
+Então, faça uma ligação simbólica entre o arquivo ``/lib/ld-musl-$(uname -m).so.1``
+para o ``/usr/lib/libc.so``. Praticamente o que foi feito originalmente, só que
+o inverso.  
+Essa será uma das poucas ligações simbólicas no sistema-base feita por nossa
+conta --- além do ``/etc/mtab`` para o ``/proc/self/mounts`` --- a fim de manter
+compatibilidade.
+
+```sh
+ln -s /lib/ld-musl-$(uname -m).so.1 /usr/lib/libc.so
+```
+
 Também crie essa pequena ligação física de compatibilidade, pois
 algumas aplicações talvez esperem um arquivo com nome
-`libc.musl-*.so.1` ao invés de `ld-musl-*.so.1`.
+``libc.musl-*.so.1`` ao invés de ``ld-musl-*.so.1``.
 
 ```sh
 ln /lib/ld-musl-$(uname -m).so.1 /lib/libc.musl-$(uname -m).so.1
 ```
 
-Como ligações físicas, por alguma razão, não são suportadas entre
-dispositivos/*mount points* diferentes, nós vamos simplesmente copiar
-o `ld-musl-*.so.1` para o `libc.so`, por uma questão de compatibilidade.
-
-```sh
-cp /lib/ld-musl-$(uname -m).so.1 /usr/lib/libc.so
-```
-
 Em seguida crie uma ligação física entre o ``/lib/ld-musl-*.so.1`` e o
-``/bin/ldd`` .
+``/bin/ldd``.
 
 ```sh
 ln /lib/ld-musl-$(uname -m).so.1 /bin/ldd
 ```
 
 O ``ldd``(1) é uma ferramenta que geralmente vem por responsabilidade
-(implementação) da biblioteca C --- na biblioteca C do GNU, é um *hack*
-em Shell script; já na musl (que estamos usando) é o mesmo binário da
-biblioteca em si, e os *payloads* do ``ldd`` são ativados quando o
-``argv[0]`` é igual a '``ldd``', mas enfim, isso não importa muito
-além da curiosidade --- que basicamente lista quais são dinamicamente
-linkeditadas num binário.
+(implementação) da biblioteca C que basicamente lista quais são
+dinamicamente linkeditadas num binário.  
+Na biblioteca C do GNU, é um pequeno *hack* em Shell script, com coisa
+de 159 linhas sem comentários; já na musl (que estamos usando) é o
+mesmo binário da biblioteca em si. Eu presumo --- isso pois não
+li o código-fonte --- que a "mágica" aconteça (ou, em palavras mais técnicas,
+os *payloads* do ``ldd`` são ativados) quando o ``argv[0]`` é igual a '``ldd``'.  
 
 Por último, mas longe de ser menos importante, crie os arquivos que
 indicam ao linkeditor onde procurar bibliotecas (sim, já mexemos no
@@ -2035,9 +2323,8 @@ cat > /etc/ld-musl-$(uname -m).path << "EOF"
 EOF
 ```
 
-#### musl-extras
+#### 4º: ``libssp_nonshared.a`` (do musl-extra)
 
-##### 1º: libssp\_nonshared.a
 Para que não precisemos usar a libssp do GNU (via GCC), vamos
 compilar uma versão mínima e estática, a ``libssp_nonshared.a``.
 
@@ -2055,7 +2342,7 @@ e então finalmente instalar no sistema com um simples ``cp``(1).
 cp ./libssp_nonshared.a /usr/lib/
 ```
 
-##### 2º: Ajuste na toolchain intermediária antes de continuar
+### Ajuste na toolchain intermediária antes de continuar
 
 Primeiramente, vamos exportar a variável ``COPA_TARGET`` (a
 mesma exportada no .bashrc do usuário no sistema
@@ -2071,6 +2358,7 @@ Faça backup do binário original do ld, pois caso algo dê
 errado no processo de compilação do sistema final, você
 ainda poderia regenerar a toolchain para recomeçar todo
 esse capítulo do zero.
+
 A diferença entre o ``ld-old`` e o ``ld-new`` é, explicando
 o que fizemos nos passos anteriores da segunda toolchain,
 que o ``ld-new`` tem como o ``LIB_PATH`` o ``/lib`` e o
@@ -2093,13 +2381,16 @@ ln -s /tools/bin/ld /tools/${COPA_TARGET}/bin/ld
 Depois desse processo com o linkeditor, devemos agora
 ajustar o compilador para usá-lo como configurado ---
 no caso do GCC, refazer o arquivo specs.
+
+O arquivo specs é como se fosse um "mapa" que o compilador usa
+para se guiar na hora de compilar e linkeditar binários.  
 Pense no ``gcc``(1) (o binário que invoca o compilador, não
 no pacote GCC como um inteiro) como um motorista de
 um carro, nos binários subjacentes (``cc1``, ``cc1plus`` etc)
 como partes da interface deste carro, o que corresponderia
 ao volante, pedais de freio, aceleração e embreagem etc, e
-ao arquivo spec como um mapa, com informações adicionais ao
-que o nosso motorista já conhece. Esse nosso mapa conteria
+e no arquivo ``spec`` como um mapa, com informações adicionais
+ao que o nosso motorista já conhece. Esse nosso mapa conteria
 novas informações sobre os limites de velocidade de
 determinadas partes do trajeto, atalhos para "cortar"
 pedágio em alguma rodovia específica, onde tomar cuidado
@@ -2109,14 +2400,14 @@ congestionado etc. Essas informações fazem o processo do
 nosso motorista de "ir e vir" algo possível dependendo do
 tipo de trajeto.
 
-E o arquivo specs faz basicamente isso: ele diz ao gcc quais
-programas invocar e caminhos para bibliotecas e cabeçalhos
+E o arquivo specs faz basicamente isso: ele diz ao ``gcc``
+quais programas invocar e caminhos para bibliotecas e cabeçalhos
 "seguir" para compilar um programa em C ou C++ além do que
-já foi configurado por padrão no GCC (agora não consigo
+já foi configurado por padrão no GCC[^59] (agora não consigo
 precisar se foi algo codificado rigidamente ou configurado
 na compilação, pois não fiz nenhum *hacking* no código do
 GCC ainda, apenas li parte de sua documentação e *vários*
-logs).[6]
+arquivos de registro).
 E, para que o GCC consiga "dançar de acordo com a música" do
 linkeditor que acabamos de (re)ajustar, precisamos regenerar
 o arquivo specs, com os novos caminhos de bibliotecas e
@@ -2124,62 +2415,54 @@ cabeçalhos.
 
 Primeiramente, vamos configurar duas variáveis por *subshell*:
 uma contendo o caminho da libgcc e outra contendo o caminho
-final do nosso arquivo ``specs``.
+final do nosso arquivo specs.
 
 ```sh
 LIBGCC_PATH=$(dirname $(gcc -print-libgcc-file-name))
 SPECFILE="$LIBGCC_PATH/specs"
 ```
 
-***
-**Nota**: o livro "Linux from Scratch" do Beekmans (e o "Musl-LFS"
-do Derrick) fazem isso em um único passo apenas, mas estou
-fazendo-o em dois pois, como eu disse, a proposta desta *tabula*
-(e de todas as *tabulas* que constituem a Silicon Tabula em
-si, como discutido no prólogo) é  passar um entendimento do que
-"rola por baixo dos panos", para que você possa aprender algo
-com isso e, até mesmo, poder usar esse documento como fonte
-futuramente.  
-
-***
-
-Agora vamos gerar o nosso novo arquivo ``specs``.
+Agora vamos gerar o nosso novo arquivo specs.
 
 ```console
 gcc -dumpspecs | sed -e 's@/tools@@g'                   \
     -e '/\*startfile_prefix_spec:/{n;s@.*@/usr/lib/ @}' \
-    -e '/\*cpp:/{n;s@$@ -isystem /usr/include@}' > gccspec.tmp
+    -e '/\*cpp:/{n;s@$@ -isystem /usr/include@}' > specs.tmp
 ```
 
-Acima temos uma pipeline, onde a entrada é o comando ``gcc -dumpspecs``
-que, como você deve estar imaginando, exporta as ``specs`` padrões do GCC
-que compilamos anteriormente, passa por uma linha de comando do ``sed`` (a
-qual irei explicar daqui há pouco) e termina com a output indo para o
-um gccspec.tmp. Se está se perguntando "Por que não salvamos direto
-como o ``$SPECFILE``?", isso será respondido no passo seguinte.
+Acima temos um encanamento ligando entrada e saída, onde a entrada
+é o comando --- no caso, a saída dele --- ``gcc`` com a opção ``-dumpspecs``
+que, como você deve estar imaginando, exporta as specs padrões do GCC que
+compilamos anteriormente, passa por uma linha de comando do sed (a qual irei
+explicar daqui há pouco) e termina com a saída indo para o um  ``specs.tmp ``.
+Se está se perguntando “Por que não salvamos direto como o ``$SPECFILE``
+direto?”, isso será respondido no passo seguinte.  
 Essa linha de comando do sed faz o seguinte:
 
 - ``s@/tools@@g``: Remove todas as menções ao ``/tools``, no caso trocando
 por nada usando o comando de substituição;
 - ``/\*startfile_prefix_spec:/{n;s@.*@/usr/lib/ @}``: Busca pelo padrão
-"``*startfile_prefix_spec:``", então substitui tudo (``.*``) abaixo dele ("``n``"
-seria a quebra de linha) por outro padrão (``/usr/lib``) uma vez que o tal
-padrão dito é encontrado (note que não há o "``g``" ao fim, que indica que a
-mudança não deve ser global);
+"``*startfile_prefix_spec:``", então substitui tudo (``.*``) abaixo dele
+("``n``" seria a quebra de linha, análogo ao  ``\n``) por outro padrão
+(``/usr/lib``) uma vez que o tal padrão dito é encontrado (note que não há o
+"``g``" ao fim, que indica que a mudança não deve ser global);
 - ``/\*cpp:/{n;s@$@ -isystem /usr/include@}``: Faz, assim como a linha acima, uma busca
-por padrão (este sendo o "`*cpp:`" no caso) e então substitui o fim da linha
+por padrão (este sendo o "``*cpp:``" no caso) e então substitui o fim da linha
 (``$``) abaixo desse padrão (de novo há a quebra de linha usando ``n``) por
 um novo padrão (``-isystem /usr/include``) uma única vez também (note,
 novamente, que não há a indicação de que deva ser uma mudança global).
 
-Nota: caso queira estudar mais sobre sed para entender comandos, ao menos de forma
-superficial e básica, boas referências são o "THE SED FAQ" do Eric Pement[7] e o
-artigo "Using the sed Editor" do Emmett Dulaney[8].
+***
+**Nota**: Caso queira estudar mais sobre sed para entender comandos, ao menos de
+forma básica, boas referências são o "THE SED FAQ" do Eric Pement[^60] e o
+artigo "Using the sed Editor" do Emmett Dulaney[^61].
+
+***
 
 Agora vem a resposta para a pergunta que você possivelmente se fez no último passo.
 Nós não salvamos o arquivo direto no ``$SPECFILE`` pois antes precisaríamos checar se
-o arquivo foide fato modificado como queríamos.
-Para isso, use o comando abaixo, que é um simples hack em (n)awk que busca por um
+o arquivo foi de fato modificado como queríamos.  
+Para isso, use o comando abaixo, que é um simples *hack* em (n)awk que busca por um
 padrão e se encontrado imprime o padrão e mais duas linhas abaixo.
 
 ```sh
@@ -2190,7 +2473,7 @@ for i in 'cpp' 'startfile_prefix_spec'; do
         for (i=1; i<=2; i++) {
             getline; print $0
         }
-    }' gccspec.tmp
+    }' specs.tmp
 done
 ```
 
@@ -2203,27 +2486,28 @@ Se o comando resultou na saída abaixo, estamos no caminho certo:
 *startfile_prefix_spec:
 /usr/lib
 ```
+
 ***
-**Nota**: se algo além do ``*cpp`` aparecer antes do ``*startfile_prefix_spec``, não se preocupe,
-pois isso é normal nesse caso já que eu não programei o AWK para procurar pelo padrão
-exato.
+**Nota**: se algo além do ``*cpp`` aparecer antes do ``*startfile_prefix_spec``,
+não se preocupe, pois isso é normal nesse caso já que eu não programei o AWK
+para procurar pelo padrão exato.
 
 ***
 
 Agora você pode copiar o nosso novo arquivo specs para o ``$SPECFILE``.
 
 ```sh
-cp -v gccspec.tmp $SPECFILE
+cp -v specs.tmp "$SPECFILE"
 ```
 
 Se a saída do ``cp``(1) for semelhante a essa abaixo (possivelmente apenas
 com a arquitetura diferindo), nós conseguimos.
 
 ```console
-gccspec.tmp -> /tools/lib/gcc/x86_64-pindoramaCOPACABANA-linux-musl/10.2.0/specs
+specs.tmp -> /tools/lib/gcc/x86_64-pindoramaCOPACABANA-linux-musl/10.2.0/specs
 ```
 
-##### 2º (parte 2): Prova-real dos ajustes
+#### Prova-real dos ajustes
 
 Para finalizar os ajustes, devemos criar uma prova-real do que foi feito.
 Não é algo estritamente obrigatório para que tudo funcione, todavia é
@@ -2250,105 +2534,322 @@ int main(void) {
 }
 ```
 
-Então vamos compilá-lo, com a opção de verbosing tanto para o compilador (``-v``)
-quanto para o linkeditor em si (``-Wl,--verbose``).
+Então vamos compilá-lo, com a opção de verbosing tanto para o compilador
+(``-v``) quanto para o linkeditor em si (``-Wl,--verbose``).
 
 ```console
 gcc -o true true.c -v -Wl,--verbose > sanity.log 2>&1
 ```
 
 ***
-**Nota**: Sempre que você quiser passar algum switch para o linkeditor em si, você
-irá usar a opção ``-Wl`` seguida por uma vírgula e as opções que você deseja usar.[9]
+**Nota**: Sempre que você quiser passar algum switch para o linkeditor em si,
+você irá usar a opção ``-Wl`` seguida por uma vírgula e as opções que você
+deseja usar.[^62]
 
 ***
 
 Agora, com o binário em mãos, vamos tirar a prova-real de fato.
-A pipeline abaixo lista as propriedades do binário que acabamos de criar enquanto ELF,
-mas não precisamos de muitas informações além do interpretador (no caso, do loader de
-bibliotecas dinâmicas) chamado.
+O comando abaixo lista as propriedades do binário que acabamos de criar
+enquanto ELF, mas não precisamos de muitas informações além do interpretador (no
+caso, do carregador de bibliotecas dinâmicas, o ``ldd``) "chamado", então
+jogamos a saída do comando ``readelf`` num encanamento para o ``grep``.
 
 ```sh
 readelf -l ./true | grep 'Requesting program interpreter'
 ```
 
-Se a saída for o nome do arquivo da nossa libc no sistema (no meu caso, em uma máquina
-de 64 bits x86, ``/lib64/ld-musl-x86_64.so.1``), a princípio está tudo certo na linkedição,
-mas caso contrário você deve refazer o reajuste (e se os próximos testes falharem, também
-refaça os ajustes).
+Se a saída for o nome do arquivo da nossa biblioteca C no sistema (no meu caso,
+em uma máquina x86 de 64 bits, ``/lib64/ld-musl-x86_64.so.1``), a princípio está
+tudo certo na linkedição, mas caso contrário você deve refazer o reajuste (e se
+os próximos testes falharem, também refaça os ajustes).
 
-Continuando nos testes com bibliotecas, devemos checar se os objetos C.R.T (acrônimo de
-"C RunTime", o que hoje em dia não se aplica mais pois várias linguagens além da linguagem
-C usam esses objetos na linkedição, ao menos no caso do GCC e do LLVM[10]) estão sendo
-linkeditados corretamente.
-Esses objetos são usados no processo de linkedição de forma ligeiramente discreta, mas são
-estritamente necessários para o funcionamento do binário final pois são como uma "cola" entre
-o sistema e o binário.[10]
-Para você ter uma noção mais ampla: esse objeto contém código em Assembly que chama a função
-``main()``, em outras palavras: não é a função ``main()`` que inicia o programa (ao menos a baixo
-nível, obviamente), mas sim a função ``_start`` dentro desse objeto.[11]
-Obviamente não é mágica pura, como eu disse, é "apenas" um pequeno trecho de código que inicia
-de fato o código final --- você possivelmente vai conseguir informação mais a fundo acerca deste
-assunto em livros sobre programação em sistemas UNIX ou sobre programação de médio/baixo-nível.
-Enfim, sem mais delongas, vamos rodar o ``grep``(1) novamente no ``sanity.log``, dessa vez buscando
-por tentativas de abrir os arquivos ``crt1.o``, ``crti.o`` e ``crtn.o`` com êxito.
+Continuando nos testes com bibliotecas, devemos checar se os objetos C.R.T.
+(acrônimo de "C RunTime", o que hoje em dia não se aplica mais pois várias
+linguagens além da linguagem C usam esses objetos na linkedição, ao menos no
+caso do GCC e do LLVM) estão sendo linkeditados corretamente.
+Esses objetos são usados no processo de linkedição de forma ligeiramente
+discreta, mas são estritamente necessários para o funcionamento do binário final
+pois são como uma "cola" entre o sistema e o binário.[^63]  
+Para você ter uma noção mais ampla: esse objeto contém código em Assembly que
+chama a função ``main()``, em outras palavras: não é a função ``main()`` que
+inicia o programa (ao menos a baixo-nível, obviamente), mas sim a função
+``_start`` dentro desse objeto.[^64]  
+Obviamente não é mágica pura, como eu disse, é "apenas" um pequeno trecho de
+código que inicia de fato o código final --- você possivelmente vai conseguir
+informação mais a fundo acerca deste assunto em livros sobre programação em
+sistemas UNIX e/ou sobre programação de médio/baixo-nível.  
+
+Enfim, sem mais delongas, vamos rodar o ``grep``(1) novamente no ``sanity.log``,
+dessa vez buscando por tentativas de abrir os arquivos ``crt1.o``, ``crti.o`` e
+``crtn.o`` com êxito.
 
 ```sh
 grep 'attempt to open /usr/lib.*/crt[1in].*succeeded' sanity.log
 ```
 
 A saída deve ser essa:
-
 ```
 attempt to open /usr/lib/../lib/crt1.o succeeded
 attempt to open /usr/lib/../lib/crti.o succeeded
 attempt to open /usr/lib/../lib/crtn.o succeeded
 ```
 
-Se nada aparecer e o status de saída do grep for diferente de 0, então de duas uma:
-ou o compilador e o linkeditor estão linkeditando os arquivos C.R.T da toolchain ou
-eles não estão sendo encontrados (nesse caso, você abre mais duas possibilidades:
-ou você não fez as ligações simbólicas temporárias entre a toolchain e o nosso sistema
-ou ele está buscando nos caminhos errados, no último caso refaça os ajustes).
+Se nada aparecer e/ou o status de saída do grep for diferente de 0, então de duas uma:
+ou o compilador e o linkeditor estão linkeditando os arquivos C.R.T. da toolchain
+(``/tools/lib`` ao invés de ``/usr/lib``) ou eles não estão sendo encontrados --- e,
+nesse caso, você abre mais duas possibilidades: ou você não fez as ligações simbólicas
+temporárias entre a toolchain e o nosso sistema ou ele está buscando nos caminhos errados,
+no último caso refaça os ajustes.
 
 Finalizando testes relacionados ao processo de linkedição --- mais especificamente ao
 linkeditor em si ---, verifique se o linkeditor está procurando pelas bibliotecas nos
 diretórios (``SEARCH_DIR``) corretos.
-
 ```sh
 grep 'SEARCH_DIR.*' sanity.log | sed 's/[[:space:]]/\n/g'
 ```
 
 O esperado é que a saída seja essa:
-
 ```
-SEARCH_DIR("=/tools/x86_64-pindoramaCOPACABANA-linux-musl/lib64")
-SEARCH_DIR("/lib")
-SEARCH_DIR("/usr/lib")
-SEARCH_DIR("=/tools/x86_64-pindoramaCOPACABANA-linux-musl/lib")
+SEARCH_DIR("=/tools/x86_64-pindoramaCOPACABANA-linux-musl/lib64");
+SEARCH_DIR("/lib");
+SEARCH_DIR("/usr/lib");
+SEARCH_DIR("=/tools/x86_64-pindoramaCOPACABANA-linux-musl/lib");
 ```
 
 ... De novo, vale lembrar que esse exemplo é com uma máquina de 64 bits x86.
-Caso a saída não seja essa, você deve recorrer à sessão de troubleshooting desta tabula,
-que listará possibilidades de como corrigir esse erro.
+Caso a saída não seja essa, você deve recorrer à sessão de solução de problemas
+desta *tabula*, que listará possibilidades de como corrigir esse erro.
+
+Por último, cheque se o pré-processador --- que é parte do GCC e também usa o
+arquivo specs como "mapa" --- está procurando pelos cabeçalhos (inclusos
+pela diretiva ``#include``) nos diretórios corretos.  
 
 ```sh
 nawk -vpattern="#include <...> search starts here:" \
     '$0 ~ pattern { print $0; getline; print $0; }' sanity.log
 ```
-
-```
+O esperado é que a saída seja essa:
+```console
 #include <...> search starts here:
  /usr/include
 ```
 
-Touché.
+Se foi isso, o nosso ajuste foi feito corretamente e podemos continuar
+tranquilamente.
 
-#### musl-compat
+### musl-extras
 
+O musl-extras contém algumas ferramentas que são necessárias para o sistema
+final, como o ``getconf``(1).  
+
+***
+**Nota para compilações futuras**: Eu deveria escrever um Makefile para tudo,
+assim não teríamos o trabalho de compilar e instalar no sistema final
+manualmente.   
+
+***
+
+#### 1º: Compile e instale no sistema
+
+Para compilar todos os binários --- com exceção ao ``ldconfig``, que aqui é um
+*script* shell ---, estaremos utilizando apenas um laço de repetição \```for``' e
+então instalando-os utilizando a ferramenta ``install``(1), que já utilizamos
+antes inclusive.
+
+```sh
+for cmd in cmd/*.c; do
+	cmd_binary_name="$(basename $cmd .c)"
+	gcc -static "$cmd" -o "$cmd_binary_name" \
+	&& install -m755 "$cmd_binary_name" /usr/bin \
+	&& rm -v "$cmd_binary_name"
+done \
+&& install -m755 cmd/ldconfig /sbin
+```
+
+### Korn Shell
+
+O Korn Shell será o shell que utilizaremos para a interação com o usuário no
+sistema final e, também, será utilizado para programação mais complexa em shell
+script.  
+Estaremos compilando-o antes do musl-compat pois o *script* ``do_install.ksh``
+depende do Korn Shell 93 --- ou do GNU Bourne-Again Shell, ou do Z-Shell ---
+para ser executado.  
+Algo que vale lembrar é que os shells, em particular, não estão sendo
+linkeditados estaticamente --- com uma única exceção para o Almquist shell que
+iremos compilar especialmente para o ``/sbin`` e que será utilizado apenas pelo
+usuário \```root``' em paralelo ao comum presente no ``/bin``. Mas enfim, isso é
+para depois.  
+
+#### 1º: Compile e instale no sistema
+
+O Korn Shell usa um sistema de montagem próprio da AT&T, que é um *script* shell
+chamado ``package``, que age inicialmente compilando um comando Make próprio ---
+chamado internamente de "``mamake``", que significa "Make abstract machine Make"
+---, que age numa tentativa de cobrir qualquer possível incompatibilidade que o
+comando Make nativo da máquina venha a ter, que então executa diversos testes
+para confirmar se bibliotecas e cabeçalhos estão mesmo presentes no sistema e,
+por fim, compila o binário principal do Korn Shell.  
+
+Mesmo com toda essa "dança de cavalheiros" ocorrendo, esse sistema de montagem
+consegue, ao menos em minha máquina, ser consideravelmente mais rápido que o do
+Schilling --- e, quiçá, até mesmo que o do próprio GNU auto\*tools em si ---,
+mesmo sem paralelização. Eu presumo que seja porque, ao invés de usar diversos 
+*scripts* shell ou Makefiles que se "chamam" recursivamente, o sistema de montagem
+da AT&T usa pequenos programas na linguagem C e executa suas tarefas de forma
+direta.  
+
+Sem mais delongas, execute o comando abaixo. 
+
+```sh
+bin/package make
+```
+
+Por fim, ao invés de instalarmos os binários por meio do *script*
+``bin/package``, nós apenas instalamos manualmente.
+
+```sh
+install -m755 arch/$(bin/package host type)/bin/ksh /bin/ksh \
+&& install -m444 src/cmd/ksh93/sh.1 /usr/share/man/man1/ksh.1
+```
+
+### musl-compat
+
+Esse pacote provê cabeçalhos de compatibilidade para a biblioteca C musl, apenas
+no caso de você precisar (ou simplesmente querer) compilar um programa em C
+legado.  
+
+#### 1º: Instale no sistema
+
+Como eu disse anteriormente, o processo de instalação é guiado apenas por um
+*script* em Korn Shell.  
+
+***
+**Nota para compilações futuras**: Talvez, nesse caso, seja mais interessante se
+ter um Makefile do que um *script* em Korn Shell. Não que, no Copacabana, vamos
+tirar o Korn Shell do sistema-base, mas sim para fins de praticidade.
+
+***
+
+Logo, apenas execute esse comando abaixo:
+
+```sh
+./do_install.ksh
+```
+
+***
+**Nota**: Esse *script*, por hora, ainda não escreve texto (no caso, registro
+e afins) para a saída padrão. Então, por mais que pareça que nada aconteceu,
+os cabeçalhos foram sim instalados.
+
+***
+
+### Skalibs
+
+O Skalibs provê bibliotecas e cabeçalhos para programação na linguagem C, com
+alternativas mais seguras às funções já presentes na biblioteca padrão C,
+funções para lidar com estruturas de dados e para gerar números aleatórios de
+forma segura.[^65] Ela é particularmente útil para quem quiser fazer um programa
+em C, mas no caso estaremos utilizando-a para montar o utmps e o NSSS, que são
+programas criados dentro do projeto Skarnet e, portanto, requerem que as Skalibs
+estejam presentes no sistema até o estágio de linkedição.[^66]  
+Por mais que essas bibliotecas sejam extremamente úteis, creio que apenas o
+utmps e o NSSS irão utilizá-las por enquanto, logo nós não iremos instalá-las de
+forma fixa no sistema-base, mas sim de forma temporária, apenas para a linkedição
+estática.  
+Logo após, nós também iremos criar um "mapa" dos arquivos, o que vai ser útil
+para quando tivermos que apagar os arquivos do pacote posteriormente.
+
+#### 1º: Rode o *script* ``configure``
+
+```sh
+./configure --disable-shared \
+	--enable-static \
+	--libdir=/usr/lib
+```
+
+#### 2º: Compile e instale no sistema
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) && gmake install \
+&& mkdir /tmp/skalibs-2.11.1.0_lib \
+&& gmake install DESTDIR=/tmp/skalibs-2.11.1.0_lib \
+&& (cd /tmp/skalibs-2.11.1.0_lib; find . -type f -print) > \
+	/usr/src/cmp/skalibs-2.11.1.0.map \
+&& rm -rvf /tmp/skalibs-2.11.1.0_lib
+``` 
+
+### NSSS (do Skarnet)
+
+#### 1º: Rode o *script* ``configure``
+
+```sh
+./configure	--enable-shared	\
+	--enable-static	\
+	--enable-allstatic	\
+	--prefix=/usr	\
+	--libdir=/usr/lib	\
+	--with-dynlib=/lib	\
+	--libexecdir=/lib/nsss
+```
+
+#### 2º: Compile e instale no sistema
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
+### utmps (do Skarnet)
+
+#### 1º: Rode o *script* ``configure`` 
+
+```sh
+./configure --enable-shared  \
+	--enable-static      \
+	--enable-allstatic   \
+	--enable-static-libc \
+	--libdir=/usr/lib    \
+	--with-dynlib=/lib   \
+	--libexecdir=/lib/utmps \
+	--enable-nsss
+```
+
+#### 2º: Compile e instale no sistema
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+``` 
+
+```sh
+mkdir /usr/lib/pkgconfig \
+&& sed 's/@@VERSION@@/0.1.1.0/' > /usr/lib/pkgconfig/utmps.pc << "EOF"
+Name: utmps
+Description: A secure implementation of the utmp mechanism.
+URL: https://skarnet.org/software/utmps/
+Version: @@VERSION@@
+Requires.private: skalibs
+Libs: -lutmps
+Cflags: -I/usr/include/utmps
+EOF
+```
+
+### Removendo os arquivos das Skalibs
+
+Como dito anteriormente, agora que o NSSS e o utmps foram compilados e
+linkeditados estaticamente, não precisamos mais das Skalibs no sistema.  
+Logo, estaremos removendo os arquivos de forma segura com a sequência de
+comandos abaixo:
+
+```sh
+cat /usr/src/cmp/skalibs-2.11.1.0.map | (cd /; xargs rm -vf) \
+&& rmdir /usr/lib/skalibs/{sysdeps,} /usr/include/skalibs
+```
 
 ### GNU ncurses
-            ./configure --prefix=/usr \
+
+```sh
+           ./configure --prefix=/usr \
             --mandir=/usr/share/man   \
             --with-shared             \
             --with-normal             \
@@ -2358,8 +2859,9 @@ Touché.
             --enable-pc-files         \
             --enable-widec            \
             --with-pkg-config-libdir=/usr/lib/pkgconfig
+```
 
-### Heirloom 2007 etc
+### Heirloom 2007
 
 ```sh
 mv bin/* usr/bin/
@@ -2396,11 +2898,27 @@ for i in usr/bin/{lorder,mkdep,unifdef}; do
 done
 ```
 
-# *"Faça, fuce, force, vá, não chore na porta..."*: Troubleshooting
+# *“Faça, fuce, force, vá, não chore na porta...”*: Solucionando (e explicando) problemas
 
-## *"Meu ld na segunda parte da compilação da biblioteca C musl no sistema final não está retornando o resultado esperado"*
+Essa seção é basicamente o "*troubleshooting*" da *tabula*: ela existe
+justamente para explicar problemas que você talvez enfrente durante a compilação
+do Copacabana (e que normalmente não são explicados no Linux from Scratch e nem
+no Musl-LFS, mas sim em *erratas* (ou, no caso do Musl-LFS do Derrick, nas
+"*issues*" --- algumas que eu mesmo tive a honra de fazer e contribuir --- as
+quais citarei diversas vezes tanto ao longo dessa seção quanto ao longo da
+*tabula* em si.  
 
-Enquanto eu compilava o Copacabana no dia 22 de março de 2022, eu dei de cara com esse problema:
+E caso você seja um dos "faladores" que disse que o Copacabana jamais sairia ou
+até mesmo tirou sarro do processo, postando o endereço do repositório e fazendo
+piadas, leia essa seção. Assim você vai ter aprender e alguma noção do que é se
+fazer uma distribuição de fato e encontrar soluções para problemas ao invés de
+seguir cegamente um manual curado por uma equipe de colaboradores. Ah, e claro,
+vai aprender a não subestimar um brasileiro nato. ``:^)``   
+
+## *“Meu ``ld`` na segunda parte da compilação da biblioteca C musl no sistema final não está retornando o resultado esperado”*
+
+Enquanto eu compilava o sistema-base do Copacabana no dia 22 de março de 2022, com
+intuito de já fazer o primeiro lançamento oficial, eu dei de cara com esse problema:
 
 ```
 SEARCH_DIR("=/tools/x86_64-pindoramaCOPACABANA-linux-musl/lib64")
@@ -2422,9 +2940,173 @@ Para corrigir isso, apenas refaça a parte do novo binário para o linkeditor na
 instruções para compilar as GNU Binutils para a toolchain, só não se esqueça de
 limpar o diretório antes com o ``gmake -C ld/ clean``.  
 
-Esse erro originalmente foi percebido pelo Derrick no Musl-LFS e corrigido no
-commit ``19e881cd880ecd6fc8a6711c1c9038c2f3221381`` no dia 12 de dezembro de
+Esse erro originalmente foi percebido pelo próprio Derrick no Musl-LFS,
+enquanto ele trabalhava na versão 10.0.0-RC1, e corrigido no *commit*
+``19e881cd880ecd6fc8a6711c1c9038c2f3221381`` no dia 12 de dezembro de
 2021.[12]
+
+## *“O IPRoute2 simplesmente não compila, devolve um erro sobre "uma declaração estática de ``setns()`` seguindo uma declaração não-estática"”* 
+
+Enquanto eu compilava o sistema-base do Copacabana em 17 de Fevereiro de 2022,
+já aproximadamente chegando ao fim do processo e da lista de pacotes, eu dei
+de cara com esse problema:
+
+```console
+sh configure /usr/include
+TC schedulers
+ATM no
+
+libc has setns: no
+SELinux support: no
+libbpf support: no
+ELF support: yes
+libmnl support: no
+Berkeley DB: no
+need for strlcpy: yes
+libcap support: yes
+
+lib
+CC libgenl.o
+CC libnetlink.o
+libnetlink.c:154:2: warning: #warning "libmnl required for error support" [-Wcpp]
+154 | #warning "libmnl required for error support"
+| ^~~~~~~
+AR libnetlink.a
+CC utils.o
+In file included from utils.c:41:
+../include/namespace.h:41:19: error: static declaration of 'setns' follows non-static declaration
+41 | static inline int setns(int fd, int nstype)
+| ^~~~~
+In file included from ../include/namespace.h:5,
+from utils.c:41:
+/usr/include/sched.h:78:5: note: previous declaration of 'setns' was here
+78 | int setns(int, int);
+| ^~~~~
+make[1]: *** [utils.o] Error 1
+make: *** [all] Error 2
+```
+
+Esse erro ocorre pois, como pode ser visto, o "sub-*script*" ``configure`` ---
+este que é "chamado" pelo arquivo ``Makefile`` na linha 84 usando o
+interpretador ``sh``, que em nossa toolchain seria o ``dash`` ---  falha em
+identificar se a biblioteca C instalada no sistema contém uma implementação (?)
+da chamada de sistema ``setns()`` --- por meio de uma checagem por meio de um
+pequeno trecho de código em C que é gerado pela função ``check_setns()`` do
+*script*, essa que é definida nas linhas 185 até 203 ---, essa que serve para
+"mover" processos --- ou, como dito na página de manual, um fio de execução ---
+de um *namespace* para outro, assim fazendo com que o iproute2 acabe usando sua
+própria implementação.  
+
+**Linhas 83 e 84, arquivo ``Makefile``:**
+```makefile
+config.mk:   
+sh configure $(KERNEL_INCLUDE)
+```  
+
+**Linhas 185 até 203, arquivo ``configure``:**
+```sh
+check_setns()
+{
+    cat >$TMPDIR/setnstest.c <<EOF
+#include <sched.h>
+int main(int argc, char **argv)
+{
+        (void)setns(0,0);
+        return 0;
+}
+EOF
+    if $CC -I$INCLUDE -o $TMPDIR/setnstest $TMPDIR/setnstest.c >/dev/null 2>&1; then
+        echo "IP_CONFIG_SETNS:=y" >>$CONFIG
+        echo "yes"
+        echo "CFLAGS += -DHAVE_SETNS" >>$CONFIG
+    else
+        echo "no"
+    fi
+    rm -f $TMPDIR/setnstest.c $TMPDIR/setnstest
+}
+```
+
+O grande problema está no ponto em que sim, a biblioteca C musl tem sim uma
+implementação da ``setns()``, que acaba conflitando com a implementação do
+iproute2 e dando esse erro na compilação, como se a função ``setns(int, int)``
+em si tivesse sido declarada duas vezes.  
+Além de ter sido experenciado por mim mesmo --- e, provavelmente qualquer um que
+usou a toolchain de 25 de janeiro de 2022 ---, é também documentado num *commit*
+feito em 16 de Julho de 2011 por Eric W. Biederman na árvore de desenvolvimento
+principal do iproute2, implementando originalmente a função ``check_setns()``
+no *script* ``configure``, a fim de resolver um outro erro --- extremamente
+similar ao nosso, mas que foi provocado por outros fatores --- que havia sido
+experienciado por Dan McGee, um desenvolvedor de software de Chicago que trabalhou
+no projeto Arch Linux como desenvolvedor do gerenciador de pacotes Pacman e
+mantenedor do website do projeto[], enquanto ele empacotava o iproute2[].  
+
+Infelizmente, por uma questão de tempo e paciência, eu acabei por não conseguir
+traçar a causa real desse erro.  
+Entretanto, eu pude criar algumas teorias, e citarei duas delas aqui, da mais
+provável para a menos provável:  
+
+- Má-configuração do arquivo specs do GCC no reajuste, somado ao linkeditor
+  quebrado --- o que poderia ser questionado pois, mesmo assim, o
+pré-processador ainda sim encontra o cabeçalho ``sched.h`` contendo a
+implementação do ``setns(int, int)``, então de alguma forma os caminhos para o
+diretório de cabeçalhos estão configurados corretamente, todavia essa hipótese
+ainda é a mais plausível;
+- Falha na execução do *script* em si, por falta de ferramentas presentes na
+  toolchain ou por essas não seguirem padrões atuais do POSIX.
+
+De qualquer forma, eu consegui corrigir esse erro utilizando a toolchain mais
+recente, de 1 de Julho de 2022; agora o *script* de configuração do iproute2
+(e de outros programas) finalmente consegue identificar a presença de funções na
+biblioteca C.  
+
+### Solução secundária: 
+
+Caso você esteja usando a toolchain antiga, algo que não recomendo pois você
+pode acabar quebrando outros programas, a "solução" para esse erro seria
+(re)forçar a presença da ``setns()``, editando o *script* ``configure`` e
+removendo (ou simplesmente comentando) a parte da função ``check_setns()``
+que, de fato, faz a checagem, como pode ser visto abaixo:
+
+```sh
+check_setns()
+{
+        echo "IP_CONFIG_SETNS:=y" >>$CONFIG
+        echo "yes (forced)"
+        echo "CFLAGS += -DHAVE_SETNS" >>$CONFIG
+}
+```
+
+Em um formato de *diff*, a diferença seria essa:
+
+```diff
+187,195d186
+<     cat >$TMPDIR/setnstest.c <<EOF
+< #include <sched.h>
+< int main(int argc, char **argv)
+< {
+<       (void)setns(0,0);
+<       return 0;
+< }
+< EOF
+<     if $CC -I$INCLUDE -o $TMPDIR/setnstest $TMPDIR/setnstest.c >/dev/null 2>&1; then
+197c188
+<       echo "yes"
+---
+>       echo "yes (forced)"
+199,202d189
+<     else
+<       echo "no"
+<     fi
+<     rm -f $TMPDIR/setnstest.c $TMPDIR/setnstest
+```
+
+
+Esse erro originalmente foi percebido por mim, Luiz Antônio, enquanto eu
+trabalhava na versão 0.42 (codinome "El Mariachi") do Copacabana Linux, e então
+reportado na *issue* ``#73`` no repositório do Musl-LFS no Microsoft GitHub no
+dia 17 de Fevereiro de 2022[XY].  
+Foi, por fim, consertado (ou ao menos, explicado?) no dia 2 de junho de 2022 por mim
+mesmo na resposta ``1145479714`` à mesma *issue*[XX].
 
 [^1]: https://webcache.googleusercontent.com/search?q=cache:Ls6QkZbwhsIJ:https://stat.ethz.ch/R-manual/R-devel/library/utils/help/untar.html+&cd=9&hl=pt-BR&ct=clnk&gl=br#:~:text=OpenBSD
 [^2]: https://www.linuxfromscratch.org/museum/lfs-museum/8.4/LFS-BOOK-8.4-HTML/chapter05/gcc-pass2.html 
@@ -2474,21 +3156,38 @@ commit ``19e881cd880ecd6fc8a6711c1c9038c2f3221381`` no dia 12 de dezembro de
 [^41]: https://git.savannah.gnu.org/cgit/make.git/tree/ChangeLog.2#n3213
 [^42]: https://invisible-island.net/diffstat/#dep_patch
 [^43]: https://www.gnu.org/software/sed/manual/sed.html#Command_002dLine-Options
+[^44]: http://schilytools.sourceforge.net
+[^45]: https://invisible-island.net/autoconf/portability-tar.html
+[^46]: https://groups.google.com/g/comp.unix.solaris/c/LqwQ16dkM7Y
+	http://www.dnull.com/bsd/oldnews/bsdnew94791.html
+[^47]: https://stackoverflow.com/a/70727324
+	https://www.gnu.org/savannah-checkouts/gnu/autoconf/manual/autoconf-2.70/html_node/Cache-Variable-Names.html
+[^48]: https://www.gnu.org/savannah-checkouts/gnu/autoconf/manual/autoconf-2.70/html_node/Particular-Functions.html#Particular-Functions
+[^49]: http://clfs.org/view/clfs-sysroot/x86/final-system/flex.html
+[^50]: https://www.linuxfromscratch.org/museum/lfs-museum/8.4/LFS-BOOK-8.4-HTML/chapter06/createfiles.html
+[^51]: https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html 
+[^52]: https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html 
+[^53]: https://gcc.gnu.org/onlinedocs/gcc-10.4.0/gcc/Overall-Options.html
+[^54]: https://www.kernel.org/doc/gorman/html/understand/understand016.html
+[^55]: https://www.spinics.net/lists/kernel/msg4026980.html  
+       https://github.com/dslm4515/Musl-LFS/issues/51
+[^56]: https://www.kernel.org/doc/ols/2003/ols2003-pages-185-200.pdf  
+	https://github.com/dslm4515/Musl-LFS/pull/61/commits/236b338a0201465a6e00d717e9ce0ada2a9f83d6
+[^57]: https://github.com/alpinelinux/aports/blob/master/main/musl/handle-aux-at_base.patch#L1-L2
+[^58]: https://resources.infosecinstitute.com/topic/what-are-packed-executables/
+[^59]: https://gcc.gnu.org/onlinedocs/gcc/Spec-Files.html
+[^60]: http://sed.sourceforge.net/sedfaq.html
+[^61]: https://www.oracle.com/technical-resources/articles/dulaney-sed.html
+[^62]: https://gcc.gnu.org/onlinedocs/gcc/Link-Options.html#:~:text=-Wl,option
+[^63]: http://www.linker-aliens.org/blogs/ali/entry/new_crt_objects/
+[^64]: https://dev.gentoo.org/~vapier/crt.txt
+	https://en.wikipedia.org/wiki/Crt0#Example_crt0.s
+[^65]: https://skarnet.org/software/skalibs/libskarnet.html
+[^66]: https://skarnet.org/software/skalibs/index.html
 
-Nota[7]: https://www.linuxfromscratch.org/museum/lfs-museum/8.4/LFS-BOOK-8.4-HTML/chapter06/createfiles.html
-Nota[8]: https://www.spinics.net/lists/kernel/msg4026980.html  
-         https://github.com/dslm4515/Musl-LFS/issues/51
+Nota[12]: https://github.com/dslm4515/Musl-LFS/commit/19e881cd880ecd6fc8a6711c1c9038c2f3221381i
 
-Nota[4]: https://www.kernel.org/doc/ols/2003/ols2003-pages-185-200.pdf  
-	 https://github.com/dslm4515/Musl-LFS/pull/61/commits/236b338a0201465a6e00d717e9ce0ada2a9f83d6
-
-Nota[4]: https://github.com/alpinelinux/aports/blob/master/main/musl/handle-aux-at_base.patch#L1-L2
-Nota[5]: https://resources.infosecinstitute.com/topic/what-are-packed-executables/
-Nota[6]: https://gcc.gnu.org/onlinedocs/gcc/Spec-Files.html
-Nota[7]: http://sed.sourceforge.net/sedfaq.html
-Nota[8]: https://www.oracle.com/technical-resources/articles/dulaney-sed.html
-Nota[9]: https://gcc.gnu.org/onlinedocs/gcc/Link-Options.html#:~:text=-Wl,option
-Nota[10]: http://www.linker-aliens.org/blogs/ali/entry/new_crt_objects/
-Nota[11]: https://dev.gentoo.org/~vapier/crt.txt  
-         https://en.wikipedia.org/wiki/Crt0#Example_crt0.s
-Nota[12]: https://github.com/dslm4515/Musl-LFS/commit/19e881cd880ecd6fc8a6711c1c9038c2f3221381
+Nota[]: https://archlinux.org/people/developer-fellows/#dan
+Nota[]: https://patchwork.ozlabs.org/project/netdev/patch/m1mxgfkr3g.fsf@fess.ebiederm.org/
+Nota[XY]: https://github.com/dslm4515/Musl-LFS/issues/73
+Nota[XX]: https://github.com/dslm4515/Musl-LFS/issues/73#issuecomment-1145479714
