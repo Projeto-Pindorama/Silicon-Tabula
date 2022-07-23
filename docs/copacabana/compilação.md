@@ -1,4 +1,4 @@
-# Compilando o Copacabana do zero
+# "Operação Fubá Cake": compilando o Copacabana do zero
 
 Esse documento contém instruções para que você possa, por conta própria,
 compilar a distribuição Copacabana Linux®, podendo desde obter aprendizado até
@@ -8,12 +8,12 @@ O processo é bem descrito em várias etapas, para que você não se perca no
 caminho, assim como é bem explicado --- ou seja, você não vai apenas copiar e
 colar instruções, mas sim entendê-las sem muito esforço.  
 
-## Montando os discos
+## Untando as formas: formatando e montando os discos
 
 Após montar a partição root (``/``) da imagem de disco com o L.E.``mount``,
-crie mount points para o ``/boot``, ``/usr``, ``/opt`` e ``/var``, que serão
-utilizados na compilação, e então monte essas partições com o
-comando ``mount``(8) padrão.
+crie pontos de montagem para o ``/boot``, ``/usr``, ``/opt`` e ``/var``, que
+serão utilizados na compilação, e então monte essas partições com o comando
+``mount``(8) padrão.
 
 ```console
 lemount -D /dev/loop0p5 -t dsk
@@ -29,35 +29,121 @@ mount /dev/loop0p8 $COPA/opt
 Se você desejar, pode pôr isso dentro de um arquivo e executar com
 o Bourne shell, a fim de matar tempo.
 
-## Baixando o código-fonte
+## Os ingredientes
 
-Feito isso, mude as permissões do diretório ``$COPA/usr/src`` para
+Essa seção contém uma lista de dependências necessárias para montar a toolchain
+intermediária e o sistema-final, tanto aquelas que devem estar presentes na
+máquina-hospedeira quanto instruções para baixar o código-fonte necessário. 
+
+### Pacotes que devem estar instalados na máquina hospedeira
+
+* Um shell compatível com os padrões POSIX atuais, preferivelmente acompanhado do
+Korn Shell (KSH-93) ou do GNU Bourne-Again Shell;
+* Ferramentas padrões do UNIX, preferivelmente as uutils, lobase ou as GNU
+coreutils, que seguem os padrões mais atuais e que muitos *scripts* irão
+requisitar;
+* ``cmp``(1), ``diff``(1), ``diff3``(1), ``sdiff``(1) e o ``patch``(1);
+* GNU m4 e as GNU auto\*tools;
+* GNU Make;
+* GNU sed, partindo da versão 4.1.5;
+* New AWK/BWK AWK, ou o GNU AWK;
+* util-linux;
+* Ferramentas de arquivamento: ``tar``(1) e ``cpio``(1); 
+* As principais ferramentas de compressão e decompressão: bzip2, gzip e xz.
+
+### Desempacotando a toolchain inicial
+
+A toolchain inicial contém apenas as ferramentas necessárias para que possamos
+montar a toolchain intermediária que servirá, então, para montar o
+sistema-base. Elas são a biblioteca C musl, o compilador cruzado e linkeditado
+estaticamente, o pacote GNU Binutils, que inclui o linkeditor, e o comando
+File, que é usado pelo GNU auto\*conf.  
+
+Primeiramente, faça a transferência da tarball para o seu disco rígido.  
+O projeto Pindorama provê, em situações normais, duas maneiras de se fazer a
+transferência: por meio do servidor oficial e por meio do GitHub.  
+Após fazer a transferência, copie a tarball para o disco do Copacabana e então
+extraia, como de costume.
+
+```console
+[baggio@S145 ~]$ cp cross-tools_2022-01-22_16-11-02.tar.xz $COPA
+[baggio@S145 ~]$ cd $COPA
+[baggio@S145 0v]$ xz -cd cross-tools_2022-01-22_16-11-02.tar.xz | tar -xvf - -C .
+x cross-tools/ directory
+x cross-tools/include/ directory
+x cross-tools/include/monetary.h 395 bytes, 1 tape blocks
+# [...]
+```
+
+Você deverá ter agora um diretório ``/cross-tools`` presente no disco do
+Copacabana.
+
+```console
+[baggio@S145 0v]$ pwd
+/dsk/0v
+[baggio@S145 0v]$ ls -la ./cross-tools/
+total 40K
+drwxr-xr-x  10 baggio      4K Jan 22 01:35 .
+drwxr-xr-x  19 root        4K Jul 10 23:43 ..
+drwxrwxr-x   2 baggio      4K Apr 15 17:46 bin
+drwxrwxr-x   2 baggio      4K Jan 22 01:36 etc
+drwxrwxr-x   9 baggio      4K Jan 22 16:10 include
+drwxrwxr-x   4 baggio      4K Jan 22 16:10 lib
+drwxrwxr-x   3 baggio      4K Jan 22 01:13 libexec
+drwxrwxr-x   6 baggio      4K Jan 22 16:10 share
+drwxrwxr-x   2 baggio      4K Jan 22 01:24 usr
+drwxrwxr-x   5 baggio      4K Jan 21 22:57 x86_64-pindoramaCOPACABANA-linux-musl
+```
+
+Agora, apenas ligue (seja por uma ligação simbólica, seja "binddando" pelo
+``mount``(8)) o diretório ``$COPA/cross-tools`` na raiz do sistema de arquivos
+da máquina hospedeira. Nesse caso, estaremos utilizando meras ligações
+simbólicas por uma questão de praticidade.
+
+```console
+[baggio@S145 0v]$ doas ln -s $COPA/cross-tools /
+[baggio@S145 0v]$ cd /
+[baggio@S145 /]$ ls -l /cross-tools
+lrwxrwxrwx   1 root        19 Jan 13  2022 /cross-tools -> /dsk/0v/cross-tools
+```
+
+### Baixando o código-fonte
+
+Primeiramente, crie o diretório ``/usr/src`` dentro do disco do Copacabana
+(``$COPA``) e então tenha a certeza de que ele tem as permissões do usuário que
+você está usando para montar a toolchain intermediária, no nosso caso o
 ``baggio:wheel`` (ou ``baggio:baggio``, caso seu sistema não tenha o grupo
-\```wheel``', ex.: não seja o Copacabana em si), vamos precisar que o
-usuário \```baggio``' tenha acesso ao diretório ``/usr/src`` (do disco-alvo do
-Copacabana, só para dar ênfase nisso) pois é neste diretório que
-vamos baixar todo o código-fonte necessário para compilar todos os
-três stages. Agora apenas execute o *script* ``cmd/download_sources.bash``,
-passando os arquivos "``sources.txt``" e "``sources.sha256``" como
-parâmetros.
+\```wheel``', ex.: não seja o Copacabana em si).
+
+```console
+[baggio@S145 ~]$ mkdir -p $COPA/usr/src
+```
+
+Vamos precisar que o usuário \```baggio``' tenha acesso ao diretório ``/usr/src``
+(do disco-alvo do Copacabana, só para dar ênfase nisso) pois é neste diretório
+que vamos baixar todo o código-fonte necessário para compilar todos os três
+estágios. Agora apenas execute o *script* ``cmd/download_sources.bash``, passando
+os arquivos "``sources.txt``" e "``sources.sha256``" como parâmetros.
 
 Primeiramente, clone o repositório do Copacabana pelo git:
 
-```sh
-git clone http://github.com/Projeto-Pindorama/copacabana.git $COPA/usr/src/copacabana
+```console
+[baggio@S145 ~]$ git clone http://github.com/Projeto-Pindorama/copacabana.git \
+	$COPA/usr/src/copacabana
 ```
 
 Após isso, entre no diretório ``$COPA``:
 
-```sh
-cd $COPA/usr/src/copacabana
+```console
+[baggio@S145 ~]$ cd $COPA/usr/src/copacabana
 ```
 
 E então execute o *script*:
 
-```sh
-bash cmd/download_sources.bash sources.txt sources.sha256
+```console
+[baggio@S145 copacabana]$ bash cmd/download_sources.bash sources.txt sources.sha256
 ```
+
 ***
 **Nota**: é recomendável que, enquanto você estiver baixando o código-
 fonte, rode o comando ``watch -n1 ls -lR $COPA/usr/src``, para ver o
@@ -68,8 +154,8 @@ que está sendo baixado e se o *script* está funcionando.
 Também crie, após o download, um diretório chamado ``cmp/``, onde
 vamos extrair o código-fonte para compilar.
 
-```sh
-mkdir $COPA/usr/src/cmp
+```console
+[baggio@S145 copacabana]$ mkdir $COPA/usr/src/cmp
 ```
 
 ***
@@ -105,13 +191,13 @@ caso precise ser usado no futuro.
 
 ***
 
-## Desempacotando tarballs "101"
+### Desempacotando tarballs "101"
 
 Durante todo esse manual, iremos estar descompactando as tarballs
 por meio de um encanamento de E/S, não apenas com o comando ``tar``(1).
 A sintaxe, caso você ainda não conheça, é assim:
 
-```console
+```sh
 [bzip2,xz,gzip,uncompress,...] -cd arquivo.tar.[bz2,xz,gz,Z,...] | tar -xvf -
 ```
 
@@ -129,12 +215,12 @@ que você esteja com o diretório de trabalho (``$PWD``) como o diretório
 com o conteúdo da tarball, não como o ``/usr/src``, ``/usr/src/cmp`` ou
 qualquer outra coisa.  
 
-## Compilando a toolchain intermediária 
+## Primeira rodada: compilando a toolchain intermediária 
 
-Essa toolchain é *quase* (ênfase no "quase" pois não teremos um núcleo 
+Essa toolchain é __quase__ (ênfase no "quase" pois não teremos um núcleo 
 propriamente dito, mas sim um espelhamento do núcleo da máquina hospedeira, além
 de outros vários componentes que estarão faltando) um sistema Linux em
-*miniroot* que iremos usar para compilar o nosso sistema final por meio da
+*miniroot* que iremos usar para compilar o nosso sistema-base por meio da
 Mitzune.  
 Compilá-la pode, de primeira, parecer complexo --- falo isso como quem compilou,
 apagou e recompilou a mesma diversas vezes em várias máquinas diferentes desde
@@ -155,14 +241,16 @@ nosso caso, "vale" ``/dsk/0v``).
 
 Caso ele esteja ligado simbolicamente, deve aparecer assim quando você executar
 o comando abaixo.
+
 ```console
-[baggio@S145 src]$ ls -l /tools
+[baggio@S145 /]$ ls -l /tools
 lrwxrwxrwx 1 root root 14 mar 17 14:01 /tools -> /dsk/0v/tools/
 ```
 
 E, caso ele esteja "binddado" (Ave Maria, preciso de um termo melhor para isso)
 por meio do ``mount``(8), ele não deve aparecer como acima com o ``ls``, mas sim
 como um diretório comum, um "ponto de montagem" na prática.
+
 ```console
 [baggio@S145 /]$ ls -l /tools
 total 52K
@@ -184,6 +272,7 @@ drwxrwxr-x   5 baggio      4K Apr 20 14:58 x86_64-pindoramaCOPACABANA-linux-musl
 ```
 Para ver se está devidamente bindaddo, você deve usar o ``df``, como no comando
 abaixo.
+
 ```console
 [baggio@S145 /]$ df /tools
 Filesystem              kbytes       used      avail capacity Mounted on
@@ -237,7 +326,7 @@ gmake -j$(grep -c 'processor' /proc/cpuinfo) \
 Após instalado, refaça a ligação do ``/tools/lib/ld-musl*.so.1``
 para o ``/tools/lib/libc.so``.
 
-```console
+```sh
 rm -vf /tools/lib/ld-musl-$(uname -m).so.1
 ln -s /tools/lib/libc.so /tools/lib/ld-musl-$(uname -m).so.1
 ```
@@ -269,7 +358,7 @@ EOF
 Antes de continuarmos, é necessário que nós ajustemos o GCC da toolchain inicial
 para usar as bibliotecas da nossa toolchain intermediária.  
 Esse processo é análogo --- para não dizer que é literalmente o mesmo, só que
-menos extenso --- que o apresentado na parte do sistema final, então não
+menos extenso --- que o apresentado na parte do sistema-base, então não
 entrarei em detalhes sobre o que é o arquivo specs e afins por hora.  
 
 Exporte essas variáveis no seu shell:
@@ -342,7 +431,7 @@ arquitetura (ex.: para 64 bits, será ``ld-musl-x86-64.so.1``; para 32 bits, ser
 ### GNU Binary Utilities (Binutils)
 
 Não creio que seja necessário explicar a importância das GNU Binutils tanto
-nessa toolchain quanto no sistema final. Um exemplo da importância desse pacote
+nessa toolchain quanto no sistema-base. Um exemplo da importância desse pacote
 é que ele contém o linkeditor.  
 
 #### 1º: Exporte as variáveis de ambiente ao fim do ``~/.bashrc``
@@ -380,7 +469,7 @@ Caso você esteja compilando de (e para) uma máquina de 64 bits x86, faça um
 ln -s /tools/lib /tools/lib64
 ```
 
-Isso, no sistema final, é feito com *binding* entre os dois diretórios, mas como
+Isso, no sistema-base, é feito com *binding* entre os dois diretórios, mas como
 não vamos nos dar ao trabalho de chamar o ``mount()`` só para algo que é, a
 grosso modo, um grande *hack*, simplesmente faça isso.  
 Como diria um veterano que conheci, *"Don't overthink"*.
@@ -417,7 +506,7 @@ gmake -j$(grep -c 'processor' /proc/cpuinfo) && gmake install
 O próximo passo à instalação do pacote das Binutils é que criemos um novo
 binário para o linkeditor, chamado ``ld-new``.  
 Essa parte é melhor explicada no ajuste dessa toolchain para a compilação do
-sistema final, mas, dando uma palinha, basicamente vamos criar um binário do
+sistema-base, mas, dando uma palinha, basicamente vamos criar um binário do
 linkeditor com caminhos diferentes para procurar bibliotecas.  
 O nosso linkeditor atual tem o ``/tools/lib`` como o caminho para se buscar
 bibliotecas pedidas numa compilação, o que é o correto e necessário para essa
@@ -450,7 +539,7 @@ O GNU Compiler Collection é um pacote que contém compiladores para diversas
 linguagens. Inicialmente, surgiu como uma reescrita feita pelo Projeto GNU do
 compilador C, conhecido como ``cc``(1) no UNIX da AT&T --- e, por conta disso,
 ganhou o nome de "gcc", pois os comandos (re)escritos pelo GNU usavam o prefixo
-"g". Logo "**g**``cc``" seria a versão GNU do comando ``cc``(1).  
+"g". Logo "**``g``**``cc``" seria a versão GNU do comando ``cc``(1).  
 Estaremos compilando os compiladores C e C++ do pacote, o que é o suficiente,
 por hora --- enquanto as futuras ferramentas em Go não são escritas ---, para
 compilar todo o sistema-base.  
@@ -540,7 +629,7 @@ cabeçalho ``limits.h`` completo no diretório de cabeçalhos padrão do sistema
 (este sendo o ``$PREFIX/include``, no nosso caso mais especificamente sendo
 ``/tools/include``). O grande problema é: esse arquivo simplesmente não existe
 ainda no nosso ``/tools/include`` e, para compilar o GCC com suporte completo a
-C e C++ (o que é mais do que suficiente para compilar o sistema final),
+C e C++ (o que é mais do que suficiente para compilar o sistema-base),
 precisamos desse cabeçalho.
 
 Para gerá-lo, vamos rodar um comando análogo ao que o próprio sistema de *build*
@@ -567,7 +656,7 @@ posteriormente, mas que em resumo são o "começo de tudo", "o que vem antes do
 ``main()``".[^4] O conteúdo desse macro fará parte, posteriormente, do arquivo
 specs padrão (vulgo "*hardcoded*") do ``gcc`` --- coisa que explicarei
 melhor mais para frente, na parte do reajuste da toolchain intermediária (sim,
-dessa mesmo) para compilar o sistema final.  
+dessa mesmo) para compilar o sistema-base.  
 
 O pequeno *hack* em shell script abaixo faz o serviço. Ele foi adaptado do livro
 original do Linux from Scratch --- assim como uma parte considerável dos *hacks*
@@ -603,7 +692,7 @@ done
 *machine-specific*, obviamente varia de arquitetura para arquitetura.  
 Quando o Copacabana for portado para novas arquiteturas além das baseadas em
 x86, deve-se criar uma versão mais portável desse *hack* --- em outras palavras,
-um switch-case "capenga" (provavelmente) --- para executar o laço nos arquivos
+um *switch-case* "capenga" (provavelmente) --- para executar o laço nos arquivos
 corretos para cada arquitetura.
 
 ***
@@ -620,30 +709,30 @@ ainda se mantém... Não é à toa que estão indo todos para o LLVM...
 Piadas maldosas e implicâncias à parte, vamos para o que interessa.
 
 ```sh
-ln -s gmp-6.2.1 gmp				   \
-&& ln -s mpc-1.2.1 mpc				   \
-&& ln -s mpfr-4.1.0 mpfr			   \
-&& mkdir build					   \
+ln -s gmp-6.2.1 gmp	\
+&& ln -s mpc-1.2.1 mpc	\
+&& ln -s mpfr-4.1.0 mpfr	\
+&& mkdir build	\
 && cd build
-CFLAGS='-g0 -O0'				   \
-CXXFLAGS=$CFLAGS				   \
-sh ../configure                                    \
-    --target=${COPA_TARGET}                        \
-    --build=${COPA_HOST}                           \
-    --host=${COPA_TARGET}                          \
-    --prefix=/tools                                \
-    --with-local-prefix=/tools                     \
-    --with-native-system-header-dir=/tools/include \
-    --enable-languages=c,c++                       \
-    --disable-libstdcxx-pch                        \
-    --disable-multilib                             \
-    --disable-bootstrap                            \
-    --disable-libgomp                              \
-    --disable-libquadmath                          \
-    --disable-libssp                               \
-    --disable-libvtv                               \
-    --disable-symvers                              \
-    --disable-libitm                               \
+CFLAGS='-g0 -O0'	\
+CXXFLAGS=$CFLAGS	\
+sh ../configure	\
+    --target=${COPA_TARGET}	\
+    --build=${COPA_HOST}	\
+    --host=${COPA_TARGET}	\
+    --prefix=/tools	\
+    --with-local-prefix=/tools	\
+    --with-native-system-header-dir=/tools/include	\
+    --enable-languages=c,c++	\
+    --disable-libstdcxx-pch	\
+    --disable-multilib	\
+    --disable-bootstrap	\
+    --disable-libgomp	\
+    --disable-libquadmath	\
+    --disable-libssp	\
+    --disable-libvtv	\
+    --disable-symvers	\
+    --disable-libitm	\
     --disable-libsanitizer
 ```
 
@@ -718,7 +807,7 @@ rm -v /tools/include/Makefile
 ```
 
 Esses arquivos em si (com exceção do ``Makefile``, que é bem óbvio) serão
-explicados na parte sobre a instalação dos cabeçalhos no sistema final.
+explicados na parte sobre a instalação dos cabeçalhos no sistema-base.
 
 ### Ajuste básico no Shell antes de continuar 
 
@@ -942,12 +1031,12 @@ sed -e '/^all:/s@ test@@' \
 
 Essa linha do sed faz o seguinte:
 
-- ``/^all:/s@ test@@``: Busca pela linha contendo o padrão ``all:`` --- que, em
+* ``/^all:/s@ test@@``: Busca pela linha contendo o padrão ``all:`` --- que, em
 nosso Makefile, é um alvo --- e então substitui o padrão `` test`` por ```` (ou
 seja, por nada, em outras palavras remove completamente o padrão `` test`` dessa
 linha. Isso é feito para que o Makefile não rode os testes, possivelmente
 evitando algum erro de execução ou simplesmente acelerando essa parte;
-- ``s@\(ln -s -f \)$(PREFIX)/bin/@\1@``: Esse comando não é bem explicado nem
+* ``s@\(ln -s -f \)$(PREFIX)/bin/@\1@``: Esse comando não é bem explicado nem
   pelo manual do Linux from Scratch e nem pelo Musl-LFS do Derrick, mas
 teoricamente ele deveria "garantir que as ligações simbólicas são relativas e
 não exatas"[^13] (ex.: a ligação simbólica do arquivo ``x`` para o ponto ``y``
@@ -958,7 +1047,7 @@ dentro de um par de parênteses "escapadas" (``\(\)``)[^14] --- este, no caso, s
 $(PREFIX)/bin/`` por ``ln -s -f``...? Hmmm, faz sentido considerando que assim a
 nossa ligação seria apenas entre arquivos, não entre o caminho
 ``$(PREFIX)/bin/<arquivo>`` completo;
-- ``s@(PREFIX)/man@(PREFIX)/share/man@g``: Essa é clássica; nós apenas mudamos o
+* ``s@(PREFIX)/man@(PREFIX)/share/man@g``: Essa é clássica; nós apenas mudamos o
   caminho para as páginas de manual de ``$(PREFIX)/man`` para
 ``$(PREFIX)/share/man``, o que vai facilitar nossa vida quando formos remover
 arquivos de documentação da nossa toolchain posteriormente. 
@@ -996,7 +1085,7 @@ básicos de um *hacker* conhecido como ``ryanwoodsmall``[^15] (e, possivelmente,
 intervenção direta do Senhor), eu consegui pôr o Heirloom Toolchest para
 funcionar tanto linkeditado dinamicamente na toolchain --- como iremos fazer
 agora --- quanto linkeditado __estaticamente__ (isso mesmo, estático! Com
-direito ao [n]curses e tudo mais) no sistema final.[^16]  
+direito ao [n]curses e tudo mais) no sistema-base.[^16]  
 
 ***
 **Nota para compilações futuras**: No futuro, seria bom se o grande ``.patch``
@@ -1076,7 +1165,7 @@ Isso irá copiar, em ordem, todos os binários criados pelo Heirloom.
 Alguns binários irão sobreescrever outros (como, por exemplo, os binários da UC
 Berkeley irão sobreescrever os binários POSIX), mas não há problema nenhum nessa
 parte pois eles estarão funcionais para o que nós iremos fazer no chroot.  
-No sistema final, iremos ter todos eles intactos em seus devidos diretórios, mas
+No sistema-base, iremos ter todos eles intactos em seus devidos diretórios, mas
 por hora isso não é necessário.  
 
 Agora, mova o diretório ``usr/man`` para ``share/man``.
@@ -1097,7 +1186,7 @@ cp -rvf ./* /tools/
 independente do ``file``(1) --- e muito mais completa, diga-se de passagem --- e que
 essa implementação do Heirloom acaba por não funcionar na toolchain em si.  
 Todavia, **talvez** nós poderíamos ter a implementação do ``file``(1) do
-Heirloom presente no sistema final, mesmo ela sendo consideravelmente mais
+Heirloom presente no sistema-base, mesmo ela sendo consideravelmente mais
 simples do que a que a maioria das distribuições atuais usa.   
 
 ***
@@ -1107,7 +1196,7 @@ simples do que a que a maioria das distribuições atuais usa.
 ferramentas para que sigam o último padrão POSIX, assim, no caso do ``rm``(1),
 vou acabar corrigindo erros como o clássico "Your 'rm' program is bad, sorry."
 ("Seu programa 'rm' é ruim, perdão.", em tradução literal)[^17] e não teremos de
-substituí-las pelas ferramentas do lobase no sistema final --- por mais que,
+substituí-las pelas ferramentas do lobase no sistema-base --- por mais que,
 para isso, você possivelmente terá de ter mais conhecimento sobre C do que tem
 atualmente.  
 ... Ou simplesmente deixar isso de lado, afinal esse "bug" surgiu como resultado
@@ -1117,14 +1206,18 @@ porcos também --- afinal, estes não são bestas ao quadrado[^18] para se
 ofenderem com uma crítica técnica), onde os programadores tendiam a simplesmente
 rodar o ``rm``(1) passando uma variável (no exemplo, ``$file``) como parâmetro,
 sem mais nem menos:
+
 ```sh
 rm -f $file
 ```  
+
 Sendo que o ideal seria que se testasse se o arquivo sequer existe antes de
 rodar o comando de fato:
+
 ```sh
 test -e "$file" && rm -f $file
 ```   
+
 E, em último caso, caso se precise rodar *scripts* que não testem seus arquivos
 antes de deletá-los, nós poderíamos ter uma forma de se instalar o lobase
 completo (ou alguma implementação de ferramentas UNIX® alternativa que siga essa
@@ -1352,7 +1445,7 @@ A libz foi criada dentro do desenvolvimento do sistema operacional Sortix em
 Eu não estarei dando uma explicação/introdução à existência da zlib original em
 si, pois isso eu já fiz na etapa do pigz, que vem após essa.  
 
-Estaremos utilizando-a porque cai como uma luva tanto para o sistema final
+Estaremos utilizando-a porque cai como uma luva tanto para o sistema-base
 quanto para essa toolchain.  
 
 ***
@@ -1438,7 +1531,7 @@ No meio dessa correria, após várias tentativas e ideias (inclusive a de
 "descompatar" os arquivos GIF) resolveu-se criar uma biblioteca completamente
 livre, implementando um algoritmo sem patentes e que pudesse substituir
 completamente o LZW. Se acabou com a zlib implementando o DEFLATE, esse que se
-provou mais eficiente que o LZW --- tal afirmação é feita pelo website do gzip,
+provou mais eficiente que o LZW --- tal afirmação é feita pelo *website*  do gzip,
 todavia não ligando a nenhum outro artigo que mostre, por meio de *benchmarks*
 ou *footprints*, a superioridade do DEFLATE em relação ao LZW; por mais que, por
 experimentos empíricos, possamos constatar que é verdade.   
@@ -1677,14 +1770,14 @@ entendam.
 Esse *patch* faz com que o star seja compilado para o prefixo ``/tools`` ao invés
 de ``/opt/schily``, é uma simples alteração no arquivo ``DEFAULTS/Defaults``,
 dentro da árvore de código-fonte do star.  
-Posteriormente, no sistema final, teremos outro *patch* --- que, nesse momento
+Posteriormente, no sistema-base, teremos outro *patch* --- que, nesse momento
 do dia 27 de maio de 2022 eu ainda não fiz --- que vai fazer com que o prefixo
 seja o ``/`` e que o binário em si seja linkeditado de forma completamente
 estática.  
 
 ***
 **Nota**: Algo que eu ainda hei de repetir diversas vezes durante esse manual
---- tanto nessa parte da toolchain quanto, principalmente, no sistema final ---
+--- tanto nessa parte da toolchain quanto, principalmente, no sistema-base ---
 é de que eu estou considerando que você ainda não esteja dentro do
 diretório-alvo do nosso *patch*.  
 Nesse caso, apenas mude ``-d ./star-1.6`` por ``-d .``.  
@@ -1709,8 +1802,8 @@ gambiarra, por assim dizer, para que programas utilizando-o compilem com o
 GNU Make ao invés de seu "Schily SunPro Make"), o star toma um tempo
 considerável para compilar --- mesmo numa máquina recente com um AMD Ryzen
 5 3500U, 12GB de memória RAM e utilizando todos os 8 fios de execução (por
-meio da opção ``-j`` de paralelização do GNU Make), ele leva ≃4min3.76sec
-para o processo de compilação e linkedição.  
+meio da opção ``-j`` de paralelização do GNU Make), ele leva aproximadamente
+4min. e 3 seg. para o processo de compilação e linkedição.  
 Se você estiver numa máquina menos potente do que essa, possivelmente vai levar
 5 ou 6 minutos. Logo, aproveite e passe um café ou um chá --- ou, se não estiver
 com muita pressa, saia para caminhar.  
@@ -1843,13 +1936,13 @@ gmake -j$(grep -c 'processor' /proc/cpuinfo) \
 	&& gmake install
 ```
 
-# Preparando o ambiente de *chroot* para o sistema final
+## Pré-aquecendo o forno em 180°C: preparando o ambiente de chroot para o sistema-base
 
-Antes de entrarmos em *chroot* com a Mitzune para compilarmos todo o
+Antes de entrarmos em chroot com a Mitzune para compilarmos todo o
 resto do sistema, nós precisamos configurar --- ou melhor dizendo,
 popular --- o sistema de arquivos para tal.
 
-## Criando a árvore de diretórios
+### Criando a árvore de diretórios
 
 Atualmente, se você seguiu todos os procedimentos anteriores, você
 não deve ter nada no seu disco além das toolchains e do ``/usr/src``,
@@ -1861,7 +1954,7 @@ Para popular nosso FHS, assim nos permitindo finalizar o sistema,
 ``/dsk/0v``) e logado como usuário \```root``', rode o *script*
 ``cmd/populate_fhs.ksh``.
 Esse *script* automaticamente vai gerar toda a estrutura de diretórios
-necessária para a compilação do sistema final.
+necessária para a compilação do sistema-base.
 
 ```sh
 cd $COPA
@@ -1873,7 +1966,7 @@ Após a criação dos diretórios, se tudo ocorreu corretamente, o
 inclusive recomendo que você sempre cheque após qualquer execução
 de *scripts* ou de uma compilação propriamente dita).
 
-## Preparando o Virtual Kernel Filesystem (V.K.F.S)
+### Preparando o Virtual Kernel Filesystem (V.K.F.S)
 
 A maior parte desse processo é, felizmente, feito pela Mitzune,
 que no caso seria "bindar" os sistemas de arquivos virtuais do
@@ -1893,7 +1986,7 @@ doas mknod $COPA/dev/null c 1 3
 doas chmod 666 $COPA/dev/null
 ```
 
-## Importando o prefixo da Mitzune
+### Importando o prefixo da Mitzune
 
 No usuário no qual você instalou a Mitzune, que deve ser o seu
 próprio usuário pessoal, você deverá importar o prefixo do chroot
@@ -1909,7 +2002,7 @@ L.E.``mount`` ou ele seja um disco secundário (no caso, já havia
 um ou outros montados anteriormente), você precisará editar o
 arquivo ``chroot.mit`` e trocar o conteúdo da variável ``COPA``.
 
-## Entrando em chroot
+## Segunda rodada: entrando em chroot
 
 Apenas digite o comando para a Mitzune executar o prefixo do
 Copacabana.
@@ -1951,7 +2044,7 @@ done
 **Uma nota sobre o Perl em específico**: a ideia é que interpretadores,
 compiladores e afins fiquem abaixo da estrutura ``/usr/ccs``, logo você
 deve lembrar-se de excluir essa ligação ao fim do processo de compilação
-e instalação do Perl para o sistema final --- ou talvez refazer a ligação,
+e instalação do Perl para o sistema-base --- ou talvez refazer a ligação,
 com o binário do Perl indo para o ``/usr/bin``.
 
 ***
@@ -1961,7 +2054,7 @@ ln -s /tools/bin/perl /usr/bin
 ```
 
 Segundo o Linux From Scratch original, essas bibliotecas do GCC são
-necessárias para a compilação do sistema final pois a biblioteca C GNU
+necessárias para a compilação do sistema-base pois a biblioteca C GNU
 precisaria tanto da ``libstdc++`` para testes quanto da ``libgcc_s``
 para ter a pthreads funcional.[^50]
 Como estamos usando a biblioteca C musl, acredito que essas bibliotecas
@@ -2053,14 +2146,14 @@ chgrp utmp /var/adm/lastlog
 chmod 664 /var/adm/lastlog
 chmod 600 /var/adm/btmp
 ``` 
-### Compilando pacotes do sistema final
+## Assando o bolo: compilando pacotes do sistema-base
 
-Essa é a parte em que vamos compilar todos os pacotes do sistema final.
+Essa é a parte em que vamos compilar todos os pacotes do sistema-base.
 Recomendo que você, já no shell do ambiente da Mitzune, configure a variável
 ``CFLAGS`` e ``CXXFLAGS`` --- e evite usar configurações muito específicas caso
 esteja compilando para outra máquina ou para redistribuir.  
 
-#### Configurando as ``CFLAGS``
+### Configurando as ``CFLAGS``
 
 As ``CFLAGS``/``CXXFLAGS`` que estou utilizando para as tarballs oficiais do
 Copacabana são essas:  
@@ -2076,26 +2169,66 @@ KCFLAGS="$CFLAGS"
 
 Essa linha de configuração significa o seguinte:
 
-- ``-02``: Nível de otimização médio, pois concilia um tempo relativamente
+* ``-02``: Nível de otimização médio, pois concilia um tempo relativamente
   pequeno de compilação com a melhor performance dos binários para aquela
-arquitetura, sem que se perca estabilidade[^51];
+arquitetura, sem que se perca estabilidade[^51].  
+**Não** é recomendado que se use a opção ``-O3``, a não ser em casos extremamente
+específicos onde você tenha certeza absoluta --- por mão dos mantenedores ou por
+sua própria --- que o pacote a ser compilado não irá quebrar com esse nível de
+otimização. O nível 3, que é basicamente um conjunto das otimizações já presentes
+nos níveis 1 e 2, torna-se tão arriscado pois ele contém otimizações adicionais
+que podem, de fato, quebrar o binário do programa final dependendo da maneira qual
+seu código foi escrito; um exemplo de otimização agressiva que pudesse causar alguma
+falha na execução futura do programa são operações de movimentação de código[^52]
+(*code motion*, em inglês) que, em resumo, movem ou removem operações em código de
+montagem a fim de reduzir redundância de tais e/ou diminuir o tamanho do
+binário[^53], pois o compilador fará tais modificações baseadas em
+__suposições__ de como tais operações deveriam ocorrer baseando-se na ideia de que
+o programa foi escrito seguindo __estritamente__ a especificação de sua linguagem.
+Outro ponto a se considerar também é que além de riscos de, em sua execução, o
+binário final se demonstrar instável, às vezes as otimizações acabam por atrapalhar
+ao invés de ajudar; alguns exemplos disso seriam código de máquina maior e,
+consequentemente, binários maiores, com desempenho adicional ignóbil em uma situação
+prática, o binário final simplesmente tendo desempenho inferior ao que se teria caso
+fosse compilado com otimizações de nível 2 ou até mesmo nível 1, algo que já fora
+experienciado (e também explicado) em diversas ocasiões por programadores e
+entusiastas pela Internet.[^54][^55]
+Sobre as opções de otimização num geral, algo que vale se citar é que qualquer
+nível acima do 3 (seja ``-O4``, ``-O5`` ou ``-O$(echo '10^23' | bc)``) não terá
+diferença nenhuma, ao menos não no GCC --- e, se não me engano, no LLVM também.  
+No caso do GCC, que estamos utilizando, a função ``maybe_default_option()``[^56],
+que basicamente serve para determinar o nível de otimização do código a partir da
+opção que o usuário passa, prevê que, qualquer opção ``-O`` com um inteiro maior
+ou igual do que ``3`` terá o mesmo funcionamento, como pode ser visto no excerto de
+código da árvore da versão 10.3.0 do GCC abaixo:  
+**Linhas 365 até 367, arquivo ``opts.c``:**
+    
+    ```c
+    case OPT_LEVELS_3_PLUS:
+      enabled = (level >= 3);
+      break;
+    ```
+
+    Ou seja, em suma: qualquer nível acima do 3 continuará a ter as mesmas opções
+    habilitadas que o nível 3. “E quem quer todos os níveis, O1, O2, O3, O4 e até
+    mais, fica só com O3 só”, em uma rima Jobinesca para resumir mais ainda.
 - ``-march=x86-64``: Monta os binários para a arquitetura ``x86-64`` que, nesse
   caso, representa apenas um processador de x86 de 64-bits genérico, assim não
-prejudicando a compatibilidade com outras plataformas. Veja a nota que coloquei
-abaixo dessa seção[^52];
+prejudicando a compatibilidade com outras plataformas.[^57] Veja a nota que
+coloquei abaixo dessa seção;
 - ``-mcpu=znver2``: Optimiza o código para processadores da AMD com
-  microarquitetura Zen, versão 2;
+  microarquitetura Zen, versão 2;[^58]
 - ``-pipe``: __Teoricamente__ aumenta a velocidade de compilação em máquinas com
-armazenamento em discos rígidos mecânicos (conhecidos como "HDD" ou simplesmente
-"HD") --- ou discos não necessariamente mecânicos, mas com baixa velocidade em
-operações de E/S ---, ao utilizar encanamentos (*pipes*, em inglês) ao invés de
-arquivos temporários no momento da compilação.[^53] Assim, o compilador não
-precisaria "conversar" (acessar, escrever e então ler) com o disco múltiplas vezes,
-mas sim apenas passar a informação pelo encanamento para o próximo processo.
-Isso se mostra útil, principalmente, em projetos montados com o compilador sendo
-executado paralelamente em vários fios de execução (a famigerada opção ``-j``
-presente no Make). A única desvantagem em si é o relativo alto consumo de memória
-RAM, pois você terá constantemente dois programas que consomem muita memória sendo
+armazenamento em discos mecânicos (conhecidos como "HDD" ou simplesmente "HD") ---
+ou discos não necessariamente mecânicos, mas com baixa velocidade em operações de
+E/S ---, ao utilizar encanamentos (*pipes*, em inglês) ao invés de arquivos
+temporários no momento da compilação.[^59] Assim, o compilador não precisaria
+"conversar" com (acessar, escrever e então ler) o disco múltiplas vezes, mas sim
+apenas passar a informação pelo encanamento para o próximo processo. Isso se mostra
+útil, principalmente, em projetos montados com o compilador sendo executado
+paralelamente em vários fios de execução (a famigerada opção ``-j`` presente no
+Make). A única desvantagem em si é o relativo alto consumo de memória RAM, pois
+você terá constantemente dois programas que consomem muita memória sendo
 executados simultaneamente de forma direta --- no caso, o compilador (no nosso
 caso, o ``gcc``) e o montador (no nosso caso, o ``gas``), que normalmente seriam
 executados em forma hierárquica e não-paralela, com o compilador primeiro
@@ -2103,7 +2236,7 @@ compilando o código-fonte para a linguagem de montagem de sua arquitetura
 e então chamando o montador para gerar o binário.
 Se você tiver menos do que 2GB de memória RAM e não tiver o espaço de troca
 habilitado, não é recomendado que se utilize essa opção, pois você corre o risco de
-ter o processo morto pelo próprio núcleo Linux (utilizando o mecanismo OOM[^54]) numa
+ter o processo morto pelo próprio núcleo Linux (utilizando o mecanismo OOM[^60]) numa
 tentativa de impedir que tal utilize toda a memória.
 
 ***
@@ -2117,7 +2250,7 @@ mas sem comprometer o funcionamento dele em si.
 ***
 
 
-Outra coisa importante de se citar é que, por padrão, todos os pacotes
+Outra coisa importante de se citar é que, por padrão, a maioria dos pacotes
 compilados para o sistema-base devem ser linkeditados estaticamente. Isso já
 foi dissertado e explicado anteriormente. Entretanto, não preocupe-se com
 isso: você não vai precisar declarar ``-static`` nas suas
@@ -2149,7 +2282,7 @@ Nesse caso, apenas mude ``-d ./linux-5.10.105/`` por ``-d .``.
 Esse *patch* faz com que o arquivo ``swab.h`` use o cabeçalho ``stddef.h``
 ao invés do ``compiler.h``; isso adiciona uma definição do
 ``__always_inline``, que é necessária para que o cabeçalho possa ser
-compilado fora da biblioteca C do GNU.[^55]
+compilado fora da biblioteca C do GNU.[^61]
 
 ```sh
 patch -Np1 -d ./linux-5.10.105/ < \
@@ -2183,7 +2316,7 @@ rm -v /usr/include/Makefile
 Todavia, mesmo esses arquivos sendo, nesse momento, desnecessários, eles são
 extremamente úteis na hora de se compilar o núcleo Linux por completo. O sistema
 de compilação do núcleo Linux faz uso dos tais a fim de acelerar a compilação do
-núcleo, ao evitar que o GNU Make seja invocado desnecessariamente[^56] --- mas, como
+núcleo, ao evitar que o GNU Make seja invocado desnecessariamente[^62] --- mas, como
 apenas queremos os cabeçalhos, podemos simplesmente apagá-los de nosso
 ``/usr/include``.
 
@@ -2215,9 +2348,9 @@ Neste caso, o arquivo seria o ``include/paths.h``.
 ***
 
 O ``handle-aux-at_base.patch`` é dito necessário, em uma curta
-descrição no cabeçalho[^57], para que o *stub* do interpretador
+descrição no cabeçalho[^63], para que o *stub* do interpretador
 ELF do gcompat funcione com alguns binários que já foram
-comprimidos de alguma maneira (ditos "packed binaries")[^58].  
+comprimidos de alguma maneira (ditos "packed binaries")[^64].  
 Todavia, eu gostaria de poder explicar melhor o que esse
 *patch* faz posteriormente.
 
@@ -2355,7 +2488,7 @@ export COPA_TARGET="$(uname -m)-pindoramaCOPACABANA-linux-musl"
 ```
 
 Faça backup do binário original do ld, pois caso algo dê
-errado no processo de compilação do sistema final, você
+errado no processo de compilação do sistema-base, você
 ainda poderia regenerar a toolchain para recomeçar todo
 esse capítulo do zero.
 
@@ -2363,7 +2496,7 @@ A diferença entre o ``ld-old`` e o ``ld-new`` é, explicando
 o que fizemos nos passos anteriores da segunda toolchain,
 que o ``ld-new`` tem como o ``LIB_PATH`` o ``/lib`` e o
 ``/usr/lib`` --- em outras palavras, os diretórios do
-sistema final --- enquanto o ``ld-old`` têm os diretórios
+sistema-base --- enquanto o ``ld-old`` têm os diretórios
 das bibliotecas presentes na toolchain.
 
 ```sh
@@ -2403,7 +2536,7 @@ tipo de trajeto.
 E o arquivo specs faz basicamente isso: ele diz ao ``gcc``
 quais programas invocar e caminhos para bibliotecas e cabeçalhos
 "seguir" para compilar um programa em C ou C++ além do que
-já foi configurado por padrão no GCC[^59] (agora não consigo
+já foi configurado por padrão no GCC[^65] (agora não consigo
 precisar se foi algo codificado rigidamente ou configurado
 na compilação, pois não fiz nenhum *hacking* no código do
 GCC ainda, apenas li parte de sua documentação e *vários*
@@ -2439,14 +2572,14 @@ Se está se perguntando “Por que não salvamos direto como o ``$SPECFILE``
 direto?”, isso será respondido no passo seguinte.  
 Essa linha de comando do sed faz o seguinte:
 
-- ``s@/tools@@g``: Remove todas as menções ao ``/tools``, no caso trocando
+* ``s@/tools@@g``: Remove todas as menções ao ``/tools``, no caso trocando
 por nada usando o comando de substituição;
-- ``/\*startfile_prefix_spec:/{n;s@.*@/usr/lib/ @}``: Busca pelo padrão
+* ``/\*startfile_prefix_spec:/{n;s@.*@/usr/lib/ @}``: Busca pelo padrão
 "``*startfile_prefix_spec:``", então substitui tudo (``.*``) abaixo dele
 ("``n``" seria a quebra de linha, análogo ao  ``\n``) por outro padrão
 (``/usr/lib``) uma vez que o tal padrão dito é encontrado (note que não há o
 "``g``" ao fim, que indica que a mudança não deve ser global);
-- ``/\*cpp:/{n;s@$@ -isystem /usr/include@}``: Faz, assim como a linha acima, uma busca
+* ``/\*cpp:/{n;s@$@ -isystem /usr/include@}``: Faz, assim como a linha acima, uma busca
 por padrão (este sendo o "``*cpp:``" no caso) e então substitui o fim da linha
 (``$``) abaixo desse padrão (de novo há a quebra de linha usando ``n``) por
 um novo padrão (``-isystem /usr/include``) uma única vez também (note,
@@ -2454,8 +2587,8 @@ novamente, que não há a indicação de que deva ser uma mudança global).
 
 ***
 **Nota**: Caso queira estudar mais sobre sed para entender comandos, ao menos de
-forma básica, boas referências são o "THE SED FAQ" do Eric Pement[^60] e o
-artigo "Using the sed Editor" do Emmett Dulaney[^61].
+forma básica, boas referências são o "THE SED FAQ" do Eric Pement[^66] e o
+artigo "Using the sed Editor" do Emmett Dulaney[^67].
 
 ***
 
@@ -2544,7 +2677,7 @@ gcc -o true true.c -v -Wl,--verbose > sanity.log 2>&1
 ***
 **Nota**: Sempre que você quiser passar algum switch para o linkeditor em si,
 você irá usar a opção ``-Wl`` seguida por uma vírgula e as opções que você
-deseja usar.[^62]
+deseja usar.[^68]
 
 ***
 
@@ -2569,11 +2702,11 @@ linguagens além da linguagem C usam esses objetos na linkedição, ao menos no
 caso do GCC e do LLVM) estão sendo linkeditados corretamente.
 Esses objetos são usados no processo de linkedição de forma ligeiramente
 discreta, mas são estritamente necessários para o funcionamento do binário final
-pois são como uma "cola" entre o sistema e o binário.[^63]  
+pois são como uma "cola" entre o sistema e o binário.[^69]  
 Para você ter uma noção mais ampla: esse objeto contém código em Assembly que
 chama a função ``main()``, em outras palavras: não é a função ``main()`` que
 inicia o programa (ao menos a baixo-nível, obviamente), mas sim a função
-``_start`` dentro desse objeto.[^64]  
+``_start`` dentro desse objeto.[^70]  
 Obviamente não é mágica pura, como eu disse, é "apenas" um pequeno trecho de
 código que inicia de fato o código final --- você possivelmente vai conseguir
 informação mais a fundo acerca deste assunto em livros sobre programação em
@@ -2639,12 +2772,12 @@ tranquilamente.
 
 ### musl-extras
 
-O musl-extras contém algumas ferramentas que são necessárias para o sistema
-final, como o ``getconf``(1).  
+O musl-extras contém algumas ferramentas que são necessárias para o
+sistema-base, como o ``getconf``(1).  
 
 ***
 **Nota para compilações futuras**: Eu deveria escrever um Makefile para tudo,
-assim não teríamos o trabalho de compilar e instalar no sistema final
+assim não teríamos o trabalho de compilar e instalar no sistema-base
 manualmente.   
 
 ***
@@ -2669,7 +2802,7 @@ done \
 ### Korn Shell
 
 O Korn Shell será o shell que utilizaremos para a interação com o usuário no
-sistema final e, também, será utilizado para programação mais complexa em shell
+sistema-base e, também, será utilizado para programação mais complexa em shell
 script.  
 Estaremos compilando-o antes do musl-compat pois o *script* ``do_install.ksh``
 depende do Korn Shell 93 --- ou do GNU Bourne-Again Shell, ou do Z-Shell ---
@@ -2748,10 +2881,10 @@ os cabeçalhos foram sim instalados.
 O Skalibs provê bibliotecas e cabeçalhos para programação na linguagem C, com
 alternativas mais seguras às funções já presentes na biblioteca padrão C,
 funções para lidar com estruturas de dados e para gerar números aleatórios de
-forma segura.[^65] Ela é particularmente útil para quem quiser fazer um programa
+forma segura.[^71] Ela é particularmente útil para quem quiser fazer um programa
 em C, mas no caso estaremos utilizando-a para montar o utmps e o NSSS, que são
 programas criados dentro do projeto Skarnet e, portanto, requerem que as Skalibs
-estejam presentes no sistema até o estágio de linkedição.[^66]  
+estejam presentes no sistema até o estágio de linkedição.[^72]  
 Por mais que essas bibliotecas sejam extremamente úteis, creio que apenas o
 utmps e o NSSS irão utilizá-las por enquanto, logo nós não iremos instalá-las de
 forma fixa no sistema-base, mas sim de forma temporária, apenas para a linkedição
@@ -2779,6 +2912,12 @@ gmake -j$(grep -c 'processor' /proc/cpuinfo) && gmake install \
 ``` 
 
 ### NSSS (do Skarnet)
+
+O NSSS é uma implementação alternativa do Comutador de Serviço de Nomes (Name
+Service Switch, ou NSS) presente na biblioteca C GNU.  
+Basicamente, quebrando esse "jargão" em partes, é basicamente um conjunto de
+bibliotecas que provém funções para acessar, de forma mais "universal", digamos
+informações de usuários no sistema.[^73]
 
 #### 1º: Rode o *script* ``configure``
 
@@ -2821,6 +2960,8 @@ gmake -j$(grep -c 'processor' /proc/cpuinfo) \
 	&& gmake install
 ``` 
 
+Por fim, gere o arquivo contendo metadados da biblioteca para o ``pkg-config``. 
+
 ```sh
 mkdir /usr/lib/pkgconfig \
 && sed 's/@@VERSION@@/0.1.1.0/' > /usr/lib/pkgconfig/utmps.pc << "EOF"
@@ -2834,6 +2975,22 @@ Cflags: -I/usr/include/utmps
 EOF
 ```
 
+***
+**Nota**: Esse arquivo (e similares providos por outras bibliotecas atualmente)
+acaba por ser uma mão-na-roda na hora de compilar um programa ---
+principalmente num sistema de montagem atual, como o CMake --- pois são um
+conjunto de informações sobre a biblioteca, contendo sua versão, seu nome para o
+linkeditor e o caminho estático de seus arquivos de cabeçalho.[^7X] O ``pkg-config``,
+enquanto programa, fará o trabalho de informar corretamente se a biblioteca está
+na versão necessária, se há alguma exceção de configuração (por meio da ``Cflags``)
+para se compilar um programa com ela e qual a localização exata de seus arquivos
+--- tanto de cabeçalho, que serão literalmente inclusos no binário final pelo
+pré-processador e informados na diretiva ``#include``, quanto seus arquivos de objeto,
+que serão inclusos no binário do programa final (de forma dinâmica ou estática) pelo
+linkeditor.
+
+***
+
 ### Removendo os arquivos das Skalibs
 
 Como dito anteriormente, agora que o NSSS e o utmps foram compilados e
@@ -2845,6 +3002,8 @@ comandos abaixo:
 cat /usr/src/cmp/skalibs-2.11.1.0.map | (cd /; xargs rm -vf) \
 && rmdir /usr/lib/skalibs/{sysdeps,} /usr/include/skalibs
 ```
+
+### Utilitários para Fuso horário (vulgo tz ou zoneinfo) 
 
 ### GNU ncurses
 
@@ -2915,7 +3074,7 @@ fazer uma distribuição de fato e encontrar soluções para problemas ao invés
 seguir cegamente um manual curado por uma equipe de colaboradores. Ah, e claro,
 vai aprender a não subestimar um brasileiro nato. ``:^)``   
 
-## *“Meu ``ld`` na segunda parte da compilação da biblioteca C musl no sistema final não está retornando o resultado esperado”*
+## *“Meu ``ld`` na segunda parte da compilação da biblioteca C musl no sistema-base não está retornando o resultado esperado”*
 
 Enquanto eu compilava o sistema-base do Copacabana no dia 22 de março de 2022, com
 intuito de já fazer o primeiro lançamento oficial, eu dei de cara com esse problema:
@@ -2952,6 +3111,7 @@ já aproximadamente chegando ao fim do processo e da lista de pacotes, eu dei
 de cara com esse problema:
 
 ```console
+copacabana_chroot% gmake
 sh configure /usr/include
 TC schedulers
 ATM no
@@ -3038,7 +3198,7 @@ no *script* ``configure``, a fim de resolver um outro erro --- extremamente
 similar ao nosso, mas que foi provocado por outros fatores --- que havia sido
 experienciado por Dan McGee, um desenvolvedor de software de Chicago que trabalhou
 no projeto Arch Linux como desenvolvedor do gerenciador de pacotes Pacman e
-mantenedor do website do projeto[], enquanto ele empacotava o iproute2[].  
+mantenedor do *website* do projeto[], enquanto ele empacotava o iproute2[].  
 
 Infelizmente, por uma questão de tempo e paciência, eu acabei por não conseguir
 traçar a causa real desse erro.  
@@ -3166,24 +3326,34 @@ mesmo na resposta ``1145479714`` à mesma *issue*[XX].
 [^49]: http://clfs.org/view/clfs-sysroot/x86/final-system/flex.html
 [^50]: https://www.linuxfromscratch.org/museum/lfs-museum/8.4/LFS-BOOK-8.4-HTML/chapter06/createfiles.html
 [^51]: https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html 
-[^52]: https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html 
-[^53]: https://gcc.gnu.org/onlinedocs/gcc-10.4.0/gcc/Overall-Options.html
-[^54]: https://www.kernel.org/doc/gorman/html/understand/understand016.html
-[^55]: https://www.spinics.net/lists/kernel/msg4026980.html  
+[^52]: https://www.ibm.com/docs/en/xl-c-aix/13.1.2?topic=descriptions-qoptimize
+	https://stackoverflow.com/a/34247001
+[^53]: https://en.wikipedia.org/wiki/Code_motion
+[^54]: https://stackoverflow.com/questions/69503317/bubble-sort-slower-with-o3-than-o2-with-gcc
+[^55]: https://stackoverflow.com/questions/28875325/gcc-optimization-flag-o3-makes-code-slower-than-o2
+[^56]: https://github.com/gcc-mirror/gcc/blob/releases/gcc-10.3.0/gcc/opts.c#L310-L398 
+[^57]: https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html 
+[^58]: https://en.wikichip.org/wiki/amd/microarchitectures/zen_2#Compiler_support
+[^59]: https://gcc.gnu.org/onlinedocs/gcc-10.4.0/gcc/Overall-Options.html
+[^60]: https://www.kernel.org/doc/gorman/html/understand/understand016.html
+[^61]: https://www.spinics.net/lists/kernel/msg4026980.html  
        https://github.com/dslm4515/Musl-LFS/issues/51
-[^56]: https://www.kernel.org/doc/ols/2003/ols2003-pages-185-200.pdf  
+[^62]: https://www.kernel.org/doc/ols/2003/ols2003-pages-185-200.pdf  
 	https://github.com/dslm4515/Musl-LFS/pull/61/commits/236b338a0201465a6e00d717e9ce0ada2a9f83d6
-[^57]: https://github.com/alpinelinux/aports/blob/master/main/musl/handle-aux-at_base.patch#L1-L2
-[^58]: https://resources.infosecinstitute.com/topic/what-are-packed-executables/
-[^59]: https://gcc.gnu.org/onlinedocs/gcc/Spec-Files.html
-[^60]: http://sed.sourceforge.net/sedfaq.html
-[^61]: https://www.oracle.com/technical-resources/articles/dulaney-sed.html
-[^62]: https://gcc.gnu.org/onlinedocs/gcc/Link-Options.html#:~:text=-Wl,option
-[^63]: http://www.linker-aliens.org/blogs/ali/entry/new_crt_objects/
-[^64]: https://dev.gentoo.org/~vapier/crt.txt
+[^63]: https://github.com/alpinelinux/aports/blob/master/main/musl/handle-aux-at_base.patch#L1-L2
+[^64]: https://resources.infosecinstitute.com/topic/what-are-packed-executables/
+[^65]: https://gcc.gnu.org/onlinedocs/gcc/Spec-Files.html
+[^66]: http://sed.sourceforge.net/sedfaq.html
+[^67]: https://www.oracle.com/technical-resources/articles/dulaney-sed.html
+[^68]: https://gcc.gnu.org/onlinedocs/gcc/Link-Options.html#:~:text=-Wl,option
+[^69]: http://www.linker-aliens.org/blogs/ali/entry/new_crt_objects/
+[^70]: https://dev.gentoo.org/~vapier/crt.txt
 	https://en.wikipedia.org/wiki/Crt0#Example_crt0.s
-[^65]: https://skarnet.org/software/skalibs/libskarnet.html
-[^66]: https://skarnet.org/software/skalibs/index.html
+[^71]: https://skarnet.org/software/skalibs/libskarnet.html
+[^72]: https://skarnet.org/software/skalibs/index.html
+[^73]: https://skarnet.org/software/nsss/
+
+[^7X]: https://people.freedesktop.org/~dbn/pkg-config-guide.html#concepts
 
 Nota[12]: https://github.com/dslm4515/Musl-LFS/commit/19e881cd880ecd6fc8a6711c1c9038c2f3221381i
 
