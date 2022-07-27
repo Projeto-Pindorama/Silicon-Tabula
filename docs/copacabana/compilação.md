@@ -42,6 +42,8 @@ Korn Shell (KSH-93) ou do GNU Bourne-Again Shell;
 * Ferramentas padrões do UNIX, preferivelmente as uutils, lobase ou as GNU
 coreutils, que seguem os padrões mais atuais e que muitos *scripts* irão
 requisitar;
+* Mitzune, para o estágio de chroot;
+* L.E.``mount``, opcionalmente para montar discos;
 * ``cmp``(1), ``diff``(1), ``diff3``(1), ``sdiff``(1) e o ``patch``(1);
 * GNU m4 e as GNU auto\*tools;
 * GNU Make;
@@ -2775,13 +2777,6 @@ tranquilamente.
 O musl-extras contém algumas ferramentas que são necessárias para o
 sistema-base, como o ``getconf``(1).  
 
-***
-**Nota para compilações futuras**: Eu deveria escrever um Makefile para tudo,
-assim não teríamos o trabalho de compilar e instalar no sistema-base
-manualmente.   
-
-***
-
 #### 1º: Compile e instale no sistema
 
 Para compilar todos os binários --- com exceção ao ``ldconfig``, que aqui é um
@@ -2798,6 +2793,13 @@ for cmd in cmd/*.c; do
 done \
 && install -m755 cmd/ldconfig /sbin
 ```
+
+***
+**Nota para compilações futuras**: Eu deveria escrever um Makefile para tudo,
+assim não teríamos o trabalho de compilar e instalar no sistema-base
+manualmente.   
+
+***
 
 ### Korn Shell
 
@@ -2913,11 +2915,17 @@ gmake -j$(grep -c 'processor' /proc/cpuinfo) && gmake install \
 
 ### NSSS (do Skarnet)
 
-O NSSS é uma implementação alternativa do Comutador de Serviço de Nomes (Name
-Service Switch, ou NSS) presente na biblioteca C GNU.  
+O NSSS é uma implementação alternativa do Comutador de Serviço de Nomes (*Name
+Service Switch*, ou NSS) presente na biblioteca C GNU.  
 Basicamente, quebrando esse "jargão" em partes, é basicamente um conjunto de
 bibliotecas que provém funções para acessar, de forma mais "universal", digamos
-informações de usuários no sistema.[^73]
+informações de usuários no sistema.[^73]  
+O NSSS foi criado a fim de ser uma implementação do NSS para bibliotecas C que
+não tivessem uma implementação da mesma, como a biblioteca C musl por exemplo.
+Entretanto, não se trata de um mero *port* da implementação do GNU para outras
+bibliotecas C, mas sim uma reimplementação completa que, inclusive, conserta
+falhas estruturais originalmente presentes na implementação da biblioteca C
+GNU[^74]. Por essas razões, estaremos utilizando-o no sistema-base.
 
 #### 1º: Rode o *script* ``configure``
 
@@ -2939,6 +2947,43 @@ gmake -j$(grep -c 'processor' /proc/cpuinfo) \
 ```
 
 ### utmps (do Skarnet)
+
+O utmps provê funções para lidar com os arquivos de banco de dados ``utmp`` e
+``wtmp``, que guardam registro de usuários presentes no sistema no momento e
+de todos os usuários que já entraram e sairam do sistema, respectivamente.[^75]  
+Geralmente, essas funções seriam implementadas diretamente na biblioteca C do
+sistema, entretanto os desenvolvedores da musl decidiram por não implementá-la
+por razões de segurança, o que é abordado de forma específica em seu Q.F.P., na
+pergunta "Por que a funcionalidade do utmp/wtmp é implementada apenas como um
+rascunho?".[^76] Entre as razões estaria o fato de que, se houvesse uma
+implementação completa, a equipe da musl teria trabalho dobrado em fazer algo
+que não comprometesse a segurança dos usuários do sistema e de que para
+se acessar e modificar o banco de dados do utmp/wtmp precisaria-se que os binários
+que o fizessem tivessem permissões de superusuário, o que poderia, potencialmente,
+abrir buracos de segurança. Com o propósito de se criar uma implementação segura e
+independente da biblioteca C, surgiu o utmps por mão do projeto Skarnet. Essa
+implementação se torna mais segura pois os únicos binários que precisam, de
+fato, acessar o banco de dados são as *daemons* do utmps --- ``utmps-utmpd`` e
+``utmps-wtmpd``, respectivamente --- e os programas que precisam acessá-lo na
+realidade estarão fazendo requisições para as *daemons* por meio da
+libutmps.[^77] Essa solução, apesar de simples e "antiquada", é genial e
+funciona bem.  
+Algo que possivelmente você não está se perguntando mas que talvez seja
+interessante é a etimologia dos termos em si. Primeiramente (e, se pá, o mais
+simples de se deduzir), o "``u``" em "``utmp``" se referiria aos usuários
+("_**u**sers_") atualmente presentes ("logados") no sistema e o "``w``" em "``wtmp``"
+se referiria a quem ("_**w**ho_") já esteve presente no sistema; ambos também contém
+"tmp" em seus nomes pois, originalmente no UNIX v4, esses arquivos não estariam
+localizados no diretório com arquivos contendo informações variáveis sobre a administração
+do sistema (``/var/adm``), que nem sequer existia ainda, mas sim no diretório temporário
+(``/tmp``).[^78] Logo, "``utmp``" seria "o arquivo de todos os usuários presentes no sistema"
+e "``wtmp``" seria "o arquivo de todos os usuários que já estiveram presentes no sistema em
+algum momento" --- abrindo uma pequena tangente, o "``tmp``", mesmo dando a ideia de que o
+arquivo seria temporário e que seria removido na próxima reinicialização do sistema, como
+aconteceria em um sistema UNIX-compatível atual com um diretório temporário cujo
+sistema de arquivos ficaria hospedado na memória RAM, ele não seria exatamente
+temporário, pois não seria apagado/limpo em cada reinicialização; logo o
+"``tmp``" indicaria apenas que ele estaria presente no diretório temporário.
 
 #### 1º: Rode o *script* ``configure`` 
 
@@ -2964,12 +3009,15 @@ Por fim, gere o arquivo contendo metadados da biblioteca para o ``pkg-config``.
 
 ```sh
 mkdir /usr/lib/pkgconfig \
-&& sed 's/@@VERSION@@/0.1.1.0/' > /usr/lib/pkgconfig/utmps.pc << "EOF"
+&& sed 's/@@VERSION@@/0.1.1.0/; /#/d' > /usr/lib/pkgconfig/utmps.pc << "EOF"
 Name: utmps
 Description: A secure implementation of the utmp mechanism.
 URL: https://skarnet.org/software/utmps/
 Version: @@VERSION@@
-Requires.private: skalibs
+# Como a utmps foi linkeditada estaticamente nas skalibs, nós não precisamos
+# citar as skalibs como dependências da utmps, logo podemos, simplesmente,
+# remover sua menção desse arquivo.
+# Requires.private: skalibs
 Libs: -lutmps
 Cflags: -I/usr/include/utmps
 EOF
@@ -2980,7 +3028,7 @@ EOF
 acaba por ser uma mão-na-roda na hora de compilar um programa ---
 principalmente num sistema de montagem atual, como o CMake --- pois são um
 conjunto de informações sobre a biblioteca, contendo sua versão, seu nome para o
-linkeditor e o caminho estático de seus arquivos de cabeçalho.[^7X] O ``pkg-config``,
+linkeditor e o caminho estático de seus arquivos de cabeçalho.[^79] O ``pkg-config``,
 enquanto programa, fará o trabalho de informar corretamente se a biblioteca está
 na versão necessária, se há alguma exceção de configuração (por meio da ``Cflags``)
 para se compilar um programa com ela e qual a localização exata de seus arquivos
@@ -3004,6 +3052,8 @@ cat /usr/src/cmp/skalibs-2.11.1.0.map | (cd /; xargs rm -vf) \
 ```
 
 ### Utilitários para Fuso horário (vulgo tz ou zoneinfo) 
+
+
 
 ### GNU ncurses
 
@@ -3352,8 +3402,19 @@ mesmo na resposta ``1145479714`` à mesma *issue*[XX].
 [^71]: https://skarnet.org/software/skalibs/libskarnet.html
 [^72]: https://skarnet.org/software/skalibs/index.html
 [^73]: https://skarnet.org/software/nsss/
-
-[^7X]: https://people.freedesktop.org/~dbn/pkg-config-guide.html#concepts
+[^74]: https://skarnet.org/software/nsss/nsswitch.html
+[^75]: "utmp − user information [...] This file allows one to discover information about who is
+	currently using UNIX." (pág. 232)
+	"wtmp − user login history [...] This file records all logins and logouts." (pág. 233)
+	RITCHIE, Dennis M.; THOMPSON, Ken. UNIX PROGRAMMER’S MANUAL. 4ª Edição.
+	Murray Hill, Nova Jérsei: Bell Telephone Laboratories, Inc., Novembro de 1973
+[^76]: https://wiki.musl-libc.org/faq.html#Q:-Why-is-the-utmp/wtmp-functionality-only-implemented-as-stubs?
+[^77]: https://skarnet.org/software/utmps/overview.html
+[^78]: "utmp − user information [...] This file resides in directory /tmp." (pág. 232)
+	"wtmp − user login history [...] This file resides in directory /tmp." (pág. 233)
+	RITCHIE, Dennis M.; THOMPSON, Ken. UNIX PROGRAMMER’S MANUAL. 4ª Edição.
+	Murray Hill, Nova Jérsei: Bell Telephone Laboratories, Inc., Novembro de 1973
+[^79]: https://people.freedesktop.org/~dbn/pkg-config-guide.html#concepts
 
 Nota[12]: https://github.com/dslm4515/Musl-LFS/commit/19e881cd880ecd6fc8a6711c1c9038c2f3221381i
 
