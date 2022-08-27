@@ -1346,7 +1346,7 @@ cp -v a.out nawk \
 && gmake clean
 ``` 
 
-### ``file``(1)
+### File 
 
 Essa é uma (das várias) implementações do comando ``file``(1), que iremos
 compilar para substituir a implementação do Heirloom presente atualmente na
@@ -2838,7 +2838,7 @@ por fim, compila o binário principal do Korn Shell.
 
 Mesmo com toda essa "dança de cavalheiros" ocorrendo, esse sistema de montagem
 consegue, ao menos em minha máquina, ser consideravelmente mais rápido que o do
-Schilling --- e, quiçá, até mesmo que o do próprio GNU auto\*tools em si ---,
+Schilling --- e, se pá, até mesmo que o do próprio GNU auto\*tools em si ---,
 mesmo sem paralelização. Eu presumo que seja porque, ao invés de usar diversos 
 *scripts* shell ou Makefiles que se "chamam" recursivamente, o sistema de montagem
 da AT&T usa pequenos programas na linguagem C e executa suas tarefas de forma
@@ -2978,8 +2978,9 @@ fato, acessar o banco de dados são as *daemons* do utmps --- ``utmps-utmpd`` e
 ``utmps-wtmpd``, respectivamente --- e os programas que precisam acessá-lo na
 realidade estarão fazendo requisições para as *daemons* por meio da
 libutmps.[^78] Essa solução, apesar de simples e aparentemente "antiquada", é
-genial e funciona bem --- até melhor do que o que fora implementado por UNIXes
-proprietários e pela própria Bell Labs.  
+genial e funciona bem --- até melhor, pelo ponto de vista de segurança
+arquitetural, do que o que fora implementado por UNIXes proprietários e pela
+própria Bell Labs durante o arco dos anos 1970 e 2000.  
 Algo que possivelmente você não está se perguntando mas que talvez seja
 interessante é a etimologia dos termos em si. Primeiramente (e, se pá, o mais
 simples de se deduzir), o "``u``" em "``utmp``" se referiria aos usuários
@@ -3125,11 +3126,9 @@ mkdir -p "$zoneinfo/"{,posix,right} \
 && for tab in iso3166.tab zone.tab zone1970.tab; do
 	install -m444 "$tab" "$zoneinfo"
 done \
-&&
-for bincmd in tzselect zdump; do
-	install -m775 "$bincmd" /usr/bin
+&& for bincmd in tzselect zdump zic; do
+	install -m775 "$bincmd" /usr/sbin
 done \
-&& install -m775 zic /usr/sbin \
 && install -m644 libtz.a /usr/lib \
 && for manpage in newctime.3 newtzset.3 tzfile.5 tzselect.8 zdump.8 zic.8; do
 	test -d "/usr/share/man/man${manpage##*.}" \
@@ -3143,19 +3142,65 @@ done \
 ```
 
 Esses comandos com a ferramenta zic fazem o seguinte:
+
 * ``-d [...]``: Simplesmente informa o diretório onde o zic deve gerar e
   instalar o banco de dados ao invés de seguir o padrão;
 * ``-b fat``: Faz com que os arquivos finais do banco de dados sejam maiores,
   mas compatíveis com programas mais antigos, que possivelmente não lidam bem
 com apenas os dados de 64-bits do banco de dados. Talvez isso não seja mais
 necessário em versões futuras do Copacabana, mas nunca se sabe;
-* ``-L leapseconds``: ;
-* ``-p America/New_York``: .
+* ``-L leapseconds``: Essa opção, acompanhada da ``-d`` e de ``$timezones`` ao
+  fim do comando, gerará as datas corretas, inclusive com os seus segundos
+intercalares --- em inglês, "*leap seconds*", daí o nome da opção e do arquivo
+contendo a lista de segundos bissexstos ---, que, em um grandissíssimo resumo, é
+uma correção feita na contagem de tempo global a fim de corrigir uma pequena falha
+na rotação da Terra em relação ao tempo teórico calculado por físicos.[^83] É um
+assunto complexo que nem eu entendo direito, para ser sincero, então pretendo
+não me extender nisso.
+* ``-p America/New_York``: Quando apenas acompanhado da opção ``-d``, faz com
+  que o zic crie o arquivo ``/usr/share/lib/zoneinfo/posixrules``, que na
+prática é uma ligação simbólica para o fuso-horário indicado. Isso pode ser
+comprovado nos excertos de código-fonte da função ``main()`` do arquivo
+``zic.c`` abaixo:  
+    **Linhas 796 até 804, do arquivo ``zic.c``:**
+
+    ```c
+    			case 'p':
+    				if (psxrules == NULL)
+    					psxrules = optarg;
+    				else {
+    					fprintf(stderr,
+    _("%s: More than one -p option specified\n"),
+    						progname);
+    					return EXIT_FAILURE;
+    				}
+    				break;
+    ```
+
+    **Linhas 902 até 905, do arquivo ``zic.c``:**
+
+    ```c
+    if (psxrules != NULL) {
+    		eat(_("command line"), 1);
+    		dolink(psxrules, TZDEFRULES, true);
+    	}
+    ```
+    Entretanto, essa opção é considerada obsoleta pela própria página de manual
+    do zic, logo talvez ela seja removida futuramente.  
+    Estaremos utilizando o fuso horário para Nova Iorque pois o padrão POSIX
+    requer que as "regras" de fuso horário estejam de acordo com as regras dos
+    Estados Unidos da América --- algo para qual, infelizmente, não achei uma
+    fonte até o presente momento.
 
 Esse (relativamente) grande bloco de comandos é, praticamente, o que o Makefile
 faria e deve ser o suficiente para instalar todo o banco de dados.
 
-###
+### Sortix libz (bifurcação da zlib) 
+
+
+
+### File
+
 
 
 ### GNU ncurses
@@ -3172,6 +3217,8 @@ faria e deve ser o suficiente para instalar todo o banco de dados.
             --enable-widec            \
             --with-pkg-config-libdir=/usr/lib/pkgconfig
 ```
+
+### Readline
 
 ### Heirloom 2007
 
@@ -3520,6 +3567,8 @@ mesmo na resposta ``1145479714`` à mesma *issue*[XX].
 [^80]: https://people.freedesktop.org/~dbn/pkg-config-guide.html#concepts
 [^81]: https://www.linuxfromscratch.org/lfs/view/9.1/chapter06/glibc.html#conf-glibc
 [^82]: https://git.alpinelinux.org/aports/commit/main/tzdata/APKBUILD?id=f67da5868d0420d8d466dffbc3655ce1239a1f3b
+[^83]: https://en.wikipedia.org/wiki/Leap_second
+	https://museum.seiko.co.jp/en/knowledge/story_01
 
 Nota[12]: https://github.com/dslm4515/Musl-LFS/commit/19e881cd880ecd6fc8a6711c1c9038c2f3221381i
 
