@@ -2,12 +2,20 @@
 @import url(//db.onlinewebfonts.com/c/d14e0c8f6d81412b7b53da569482a010?family=Newton+Web);
 @font-face {font-family: "Newton Web"; src: url("//db.onlinewebfonts.com/t/d14e0c8f6d81412b7b53da569482a010.eot"); src: url("//db.onlinewebfonts.com/t/d14e0c8f6d81412b7b53da569482a010.eot?#iefix") format("embedded-opentype"), url("//db.onlinewebfonts.com/t/d14e0c8f6d81412b7b53da569482a010.woff2") format("woff2"), url("//db.onlinewebfonts.com/t/d14e0c8f6d81412b7b53da569482a010.woff") format("woff"), url("//db.onlinewebfonts.com/t/d14e0c8f6d81412b7b53da569482a010.ttf") format("truetype"), url("//db.onlinewebfonts.com/t/d14e0c8f6d81412b7b53da569482a010.svg#Newton Web") format("svg"); }
 
-body {
-	font-family: "Newton Web", Times, serif;
+#main-text, .footer {
+	font-family: "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Helvetica, Arial, lucida_sans_unicoderegular, coolveticaregular;
 	background-color: #FFFFEA;
 }
 
+#main-text {
+	margin: auto;
+	padding-right: 1em;
+	padding-left: 1em;
+	max-width: 60em; 
+}
+
 #topbar {
+	font-family: "Newton Web", "Times New Roman", times;
 	background-color: #121212;
 	color: #FFFFEA;
 	text-align: center;
