@@ -440,7 +440,7 @@ nessa toolchain quanto no sistema-base. Um exemplo da importância desse pacote
 
 Vá ao ``~/.bashrc`` (aquele que copiamos do repositório de desenvolvimento do
 Copacabana ao começo da compilação cruzada) e, ao fim do arquivo, "descomente"
-(esse verbo existe formalmente? Não faço ideia) essa linha:
+essa linha:
 
 ```sh
 export CC CXX AR AS RANLIB LD STRIP
@@ -1057,9 +1057,9 @@ nossa ligação seria apenas entre arquivos, não entre o caminho
 arquivos de documentação da nossa toolchain posteriormente. 
 
 Após essa alteração no Makefile principal, antes de compilarmos o resto,
-precisamos (pré-)compilar uma versão dinâmica da libbzip2. Isso é extremamente
+precisamos (pré-)compilar uma versão dinâmica da libbz2. Isso é extremamente
 simples, apenas rode o GNU make com o parâmetro ``-f`` para usarmos o Makefile
-da libbzip2, logo em seguida limpe o código-fonte.  
+da libbz2, logo em seguida limpe o código-fonte.  
 
 ```sh
 gmake -f Makefile-libbz2_so -j$(grep -c 'processor' /proc/cpuinfo) \
@@ -2153,6 +2153,9 @@ chmod 600 /var/adm/btmp
 ## Assando o bolo: compilando pacotes do sistema-base
 
 Essa é a parte em que vamos compilar todos os pacotes do sistema-base.
+Algo que vale lembrar é que, ao contrário da parte anterior, os pacotes não
+terão tanta descrição textual além do básico (o que são e para o que servem), a
+fim de evitar redundância.  
 Recomendo que você, já no shell do ambiente da Mitzune, configure a variável
 ``CFLAGS`` e ``CXXFLAGS`` --- e evite usar configurações muito específicas caso
 esteja compilando para outra máquina ou para redistribuir.  
@@ -3104,7 +3107,8 @@ caso o diretório tivesse sido extraído de uma *tarball*.
 ```sh
 zoneinfo='/usr/share/lib/zoneinfo'
 export zoneinfo \
-&& gmake TZDIR="$zoneinfo" KSHELL='/bin/ksh'
+&& gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	TZDIR="$zoneinfo" KSHELL='/bin/ksh'
 ```
 
 Segundo o ``APKBUILD`` do Alpine Linux, mais especificamente no *commit*
@@ -3197,11 +3201,99 @@ faria e deve ser o suficiente para instalar todo o banco de dados.
 
 ### Sortix libz (bifurcação da zlib) 
 
+#### 1º: Rode o *script* ``configure``
 
+```sh
+./configure --prefix=/usr \
+	--enable-static \
+	--enable-shared
+```
+
+#### 2º: Compile e instale no sistema
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	install-static libdir=/usr/lib \
+&& gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	install-shared libdir=/lib \
+&& ln -s /lib/libz.so.?.?.? /usr/lib/libz.so
+```
+
+### libbz2 (do bzip2)
+
+Estaremos compilando a biblioteca do bzip2 antes das ferramentas em si pois nós
+queremos poder usar o suporte à libbz2 no Heirloom.
+
+#### 1º: Compile e instale no sistema
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) -f Makefile-libbz2_so \
+	&& gmake -j$(grep -c 'processor' /proc/cpuinfo) -f Makefile libbz2.a \
+	&& ranlib libbz2.a \
+&& install -m644 libbz2.so.* /lib \
+&& ln -s /lib/libbz2.so.?.?.? /usr/lib/libbz2.so \
+&& install -m644 bzlib.h /usr/include \
+&& install -m644 libbz2.a /usr/lib
+```
 
 ### File
 
+#### 1º: Rode o *script* ``configure``
 
+```sh
+./configure --prefix=/usr
+```
+
+#### 2º: Compile e instale no sistema
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
+### GNU m4
+
+#### 1º: Rode o *script* ``configure``
+
+```sh
+ac_cv_lib_error_at_line=no \
+ac_cv_header_sys_cdefs_h=no \
+./configure --prefix=/usr/ccs
+```
+
+#### 2º: Compile e instale no sistema
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
+### bc e gh (do yzena.com)
+
+#### 1º: Rode o *script* ``configure``
+
+```sh
+CC=gcc LDFLAGS='-static' ./configure --prefix=/usr -O3
+```
+
+#### 2º: Compile e instale no sistema
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
+### GNU Binary Utilities (Binutils)
+
+#### 1º: Rode o *script* ``configure``
+
+#### 2º: Compile e instale no sistema
+
+### GNU Multiple-Precision Arithmetic Library (ou simplesmente GMP)
+
+#### 1º: Rode o *script* ``configure``
+
+#### 2º: Compile e instale no sistema
 
 ### GNU ncurses
 
@@ -3217,8 +3309,6 @@ faria e deve ser o suficiente para instalar todo o banco de dados.
             --enable-widec            \
             --with-pkg-config-libdir=/usr/lib/pkgconfig
 ```
-
-### Readline
 
 ### Heirloom 2007
 
@@ -3460,6 +3550,10 @@ reportado na *issue* ``#73`` no repositório do Musl-LFS no Microsoft GitHub no
 dia 17 de Fevereiro de 2022[XY].  
 Foi, por fim, consertado (ou ao menos, explicado?) no dia 2 de junho de 2022 por mim
 mesmo na resposta ``1145479714`` à mesma *issue*[XX].
+
+## *“O GNU m4 simplesmente não compila no sistema-base, devolve uma série de erros sobre "referência não-definida a \```error``'"”*
+
+Enquanto eu compilava o sistema-base do Copacabana em 31 de Agosto de 2022
 
 [^1]: https://webcache.googleusercontent.com/search?q=cache:Ls6QkZbwhsIJ:https://stat.ethz.ch/R-manual/R-devel/library/utils/help/untar.html+&cd=9&hl=pt-BR&ct=clnk&gl=br#:~:text=OpenBSD
 [^2]: https://www.linuxfromscratch.org/museum/lfs-museum/8.4/LFS-BOOK-8.4-HTML/chapter05/gcc-pass2.html 
