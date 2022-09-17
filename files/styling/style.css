@@ -19,7 +19,7 @@ body {
 
 #topbar {
 	font-family: "Newton Web", "Times New Roman", times;
-	background-color: #121212;
+	background-color: #1D1C1A;
 	color: #FFFFEA;
 	text-align: center;
 }
@@ -50,9 +50,9 @@ p.fortune {
 	left: 0;
 	bottom: 0;
 	width: 100%;
-	background-color: white;
+	background-color: #FFFFEA;
 	color: black;
-	border: 1px solid black;
+	border-top: 1px solid black;
 	text-align: right;
 }
 
