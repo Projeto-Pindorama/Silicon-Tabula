@@ -1009,7 +1009,12 @@ gmake -j$(grep -c 'processor' /proc/cpuinfo) \
 
 ### bzip2
 
-bzip2 é uma ferramenta para compressão de arquivos, à lá xz e gzip.  
+bzip2 é uma ferramenta para compressão de arquivos, à lá xz e gzip, desenvolvida
+inicialmente pelo desenvolvedor britânico Julian Seward no ano de 1996. Antes da
+chegada do xz, o bzip2 era, segundo sua página principal, um dos compressores mais
+rápidos e eficientes disponíveis gratuitamente e livre de patentes. Em contraste
+ao gzip (e, anacronicamente, ao xz), o bzip2 faz uso do algoritmo BWT
+("Método de **B**urrows–**W**heeler", em português).  
 Nós instalaremos ela na toolchain pois alguns pacotes --- como, por exemplo, o
 Heirloom Toolchest --- estão compactados por tal.  
 
@@ -1577,8 +1582,9 @@ done \
 
 ### XZ-Utils do Tukaani
 
-Esse pacote provê a ferramenta de compressão ``xz`` entre algumas outras,
-que funciona nos moldes do gzip e, como disse antes, do bzip2.  
+Esse pacote provê a ferramenta de compressão xz entre algumas outras,
+que funciona nos moldes do gzip e, como disse antes, do bzip2. Diferentemente do
+gzip e do bzip2, o xz faz uso do algoritmo LZMA/LZMA2 (**L**empel–**Z**iv–**Ma**rkov).  
 Estaremos instalando-o pois alguns pacotes --- entre eles, o próprio núcleo
 Linux --- estão compactados com o xz.
 
@@ -2153,9 +2159,9 @@ chmod 600 /var/adm/btmp
 ## Assando o bolo: compilando pacotes do sistema-base
 
 Essa é a parte em que vamos compilar todos os pacotes do sistema-base.
-Algo que vale lembrar é que, ao contrário da parte anterior, os pacotes não
-terão tanta descrição textual além do básico (o que são e para o que servem), a
-fim de evitar redundância.  
+Algo que vale lembrar é que, ao contrário da parte anterior, os pacotes terão
+apenas uma descrição fugaz sobre o que são e para o que servem, a fim de evitar
+redundância.  
 Recomendo que você, já no shell do ambiente da Mitzune, configure a variável
 ``CFLAGS`` e ``CXXFLAGS`` --- e evite usar configurações muito específicas caso
 esteja compilando para outra máquina ou para redistribuir.  
@@ -2984,8 +2990,9 @@ libutmps.[^78] Essa solução, apesar de simples e aparentemente "antiquada", é
 genial e funciona bem --- até melhor, pelo ponto de vista de segurança
 arquitetural, do que o que fora implementado por UNIXes proprietários e pela
 própria Bell Labs durante o arco dos anos 1970 e 2000.  
-Algo que possivelmente você não está se perguntando mas que talvez seja
-interessante é a etimologia dos termos em si. Primeiramente (e, se pá, o mais
+
+Algo que possivelmente você não está se perguntando, mas que talvez seja
+interessante, é a etimologia dos termos em si. Primeiramente (e, se pá, o mais
 simples de se deduzir), o "``u``" em "``utmp``" se referiria aos usuários
 ("_**u**sers_") atualmente presentes ("logados") no sistema e o "``w``" em "``wtmp``"
 se referiria a quem ("_**w**ho_") já esteve presente no sistema; ambos também contém
@@ -3199,7 +3206,14 @@ comprovado nos excertos de código-fonte da função ``main()`` do arquivo
 Esse (relativamente) grande bloco de comandos é, praticamente, o que o Makefile
 faria e deve ser o suficiente para instalar todo o banco de dados.
 
-### Sortix libz (bifurcação da zlib) 
+### Sortix libz (bifurcação da zlib)
+ 
+A libz do Sortix é uma bifurcação da biblioteca de compressão zlib.  
+Estaremos compilando-a agora pois, além de ser dependência de tempo de
+compilação e de execução de alguns pacotes essenciais que virão a seguir,
+como as GNU Binutils, o File e afins. No caso do Heirloom, por este ser
+linkeditado estaticamente, a libz será necessária apenas para o estágio de
+compilação, mas isso acaba mais por ser uma nota de rodapé.
 
 #### 1º: Rode o *script* ``configure``
 
@@ -3221,8 +3235,11 @@ gmake -j$(grep -c 'processor' /proc/cpuinfo) \
 
 ### libbz2 (do bzip2)
 
+A libbz2 provê funções para compressão e decompressão de arquivos no formato do
+bzip2.  
 Estaremos compilando a biblioteca do bzip2 antes das ferramentas em si pois nós
-queremos poder usar o suporte à libbz2 no Heirloom.
+queremos poder usar o suporte à libbz2 no Heirloom --- além de também ser
+dependência do File enquanto biblioteca dinâmica.
 
 #### 1º: Compile e instale no sistema
 
@@ -3237,6 +3254,9 @@ gmake -j$(grep -c 'processor' /proc/cpuinfo) -f Makefile-libbz2_so \
 ```
 
 ### File
+
+Essa é uma (das várias) implementações do comando ``file``(1), utilizado para
+identificar arquivos e dependência do GNU auto\*conf.
 
 #### 1º: Rode o *script* ``configure``
 
@@ -3253,6 +3273,9 @@ gmake -j$(grep -c 'processor' /proc/cpuinfo) \
 
 ### GNU m4
 
+Essa é a implementação do Projeto GNU do processador de macros m4, utilizada
+pelo GNU auto\*conf.
+
 #### 1º: Rode o *script* ``configure``
 
 ```sh
@@ -3268,7 +3291,11 @@ gmake -j$(grep -c 'processor' /proc/cpuinfo) \
 	&& gmake install
 ```
 
-### bc e gh (do yzena.com)
+### bc e dc (do yzena.com)
+
+Essa é a implementação das calculadora dc ("*desk calculator*", ou, em tradução
+literal, "calculadora de mesa") e da calculadora bc ("*basic calculator*", ou,
+em tradução literal, "calculadora básica").  
 
 #### 1º: Rode o *script* ``configure``
 
@@ -3285,15 +3312,78 @@ gmake -j$(grep -c 'processor' /proc/cpuinfo) \
 
 ### GNU Binary Utilities (Binutils)
 
+Esse pacote contém diversas ferramentas para manusear binários, entre elas, como
+citei anteriormente, o linkeditor.
+
 #### 1º: Rode o *script* ``configure``
 
+```sh
+./configure \
+	--prefix=/usr/ccs \
+	--enable-ld \
+	--enable-gold=default \
+	--enable-64-bit-bfd \
+	--enable-relro \
+	--enable-lto \
+	--enable-threads \
+	--enable-deterministic-archives \
+	--enable-default-execstack=no \
+	--enable-targets=x86_64-pep \
+	--enable-default-hash-style=sysv \
+	--disable-multilib \
+	--disable-gprofng \
+	--disable-werror \
+	--disable-nls \
+	--with-mmap \
+	--with-system-zlib
+```
+
 #### 2º: Compile e instale no sistema
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo)
+```
+
+Após compilarmos a parte principal do pacote, segundo o Musl-LFS, nós deveríamos
+compilar as bibliotecas libbfd, libiberty, libopcodes utilizando a opção
+``-fPIC`` nas ``CFLAGS``. Isso foi posto no Musl-LFS no dia 23 de Agosto de
+2020 pelo Derrick (``dslm4515``), no *commit*
+``5ee55e85ecfba776951ba8d0904d49577a56e3c9``, cuja descrição é "Atualizadas as
+binutils para [a versão] 2.35 com proteção do Void Linux."[^84]; entretanto, como
+indicado, originalmente surgiu no Void Linux, mais especificamente em 12 de
+Junho de 2012, tendo sido implementado pelo Juan RP (``xtraeme``) no *commit*
+``eb68f14525fe488bc769f2229e82d111ae3c309d``[^85]. O Alpine Linux faz o mesmo
+tipo de proteção, todavia usando apenas a opção ``--with-pic`` no *script*
+``configure``.[^86]
+
+Sobre a opção ``-fPIC``, pois bem: o parâmetro ``-f`` significa, quase que num
+"tratado" entre compiladores C atuais e não apenas no GCC, "*flag*" que, na
+falta de uma boa tradução (e não, não é "bandeira"), funciona para dar instruções
+adicionais ao compilador sobre como gerar o código de montagem, além do que já
+lhe é passado pelo arquivo ``specs`` (o que já dissertamos sobre
+anteriormente)[^87]; já "PIC" é um acrônimo para Código Independente de Posição
+(ou "*Position Independent Code*", em inglês), é um conceito um bocado mais
+difícil de explicar do que o que é uma "*flag*", mas vamos lá.
+
+```sh
+
+
+```
+
 
 ### GNU Multiple-Precision Arithmetic Library (ou simplesmente GMP)
 
 #### 1º: Rode o *script* ``configure``
 
 #### 2º: Compile e instale no sistema
+
+
+### GNU Multiple Precision Floating-Point Reliable Library (ou simplesmente MPFR) 
+
+#### 1º: Rode o *script* ``configure``
+
+#### 2º: Compile e instale no sistema
+
 
 ### GNU ncurses
 
@@ -3351,8 +3441,8 @@ done
 
 Essa seção é basicamente o "*troubleshooting*" da tabula: ela existe
 justamente para explicar problemas que você talvez enfrente durante a compilação
-do Copacabana (e que normalmente não são explicados no Linux from Scratch e nem
-no Musl-LFS, mas sim em *erratas* (ou, no caso do Musl-LFS do Derrick, nas
+do Copacabana e que normalmente não são explicados no Linux from Scratch e nem
+no Musl-LFS, mas sim em erratas ou, no caso do Musl-LFS do Derrick, nas
 "*issues*" --- algumas que eu mesmo tive a honra de fazer e contribuir --- as
 quais citarei diversas vezes tanto ao longo dessa seção quanto ao longo da
 tabula em si.  
@@ -3360,7 +3450,7 @@ tabula em si.
 ## *“Meu ``ld`` na segunda parte da compilação da biblioteca C musl no sistema-base não está retornando o resultado esperado”*
 
 Enquanto eu compilava o sistema-base do Copacabana no dia 22 de março de 2022, com
-intuito de já fazer o primeiro lançamento oficial, eu dei de cara com esse problema:
+intuito de já fazer o primeiro lançamento oficial, eu encontrei este problema:
 
 ```
 SEARCH_DIR("=/tools/x86_64-pindoramaCOPACABANA-linux-musl/lib64")
@@ -3390,8 +3480,8 @@ enquanto ele trabalhava na versão 10.0.0-RC1, e corrigido no *commit*
 ## *“O IPRoute2 simplesmente não compila, devolve um erro sobre "uma declaração estática de ``setns()`` seguindo uma declaração não-estática"”* 
 
 Enquanto eu compilava o sistema-base do Copacabana em 17 de Fevereiro de 2022,
-já aproximadamente chegando ao fim do processo e da lista de pacotes, eu dei
-de cara com esse problema:
+já aproximadamente chegando ao fim do processo e da lista de pacotes, eu
+encontrei este problema:
 
 ```console
 copacabana_chroot% gmake
@@ -3429,7 +3519,7 @@ make[1]: *** [utils.o] Error 1
 make: *** [all] Error 2
 ```
 
-Esse erro ocorre pois, como pode ser visto, o "sub-*script*" ``configure`` ---
+Este erro ocorre pois, como pode ser visto, o "sub-*script*" ``configure`` ---
 este que é "chamado" pelo arquivo ``Makefile`` na linha 84 usando o
 interpretador ``sh``, que em nossa toolchain seria o ``dash`` ---  falha em
 identificar se a biblioteca C instalada no sistema contém uma implementação (?)
@@ -3471,7 +3561,7 @@ EOF
 
 O grande problema está no ponto em que sim, a biblioteca C musl tem sim uma
 implementação da ``setns()``, que acaba conflitando com a implementação do
-iproute2 e dando esse erro na compilação, como se a função ``setns(int, int)``
+iproute2 e dando este erro na compilação, como se a função ``setns(int, int)``
 em si tivesse sido declarada duas vezes.  
 Além de ter sido experenciado por mim mesmo --- e, provavelmente qualquer um que
 usou a toolchain de 25 de janeiro de 2022 ---, é também documentado num *commit*
@@ -3488,16 +3578,18 @@ traçar a causa real desse erro.
 Entretanto, eu pude criar algumas teorias, e citarei duas delas aqui, da mais
 provável para a menos provável:  
 
+- Falha na instalação dos cabeçalhos do núcleo Linux por minha parte enquanto
+  mantenedor/desenvolvedor único da distribuição --- como eu mesmo propus no
+comentário que fiz na minha própria *issue* no Musl-LFS; 
 - Má-configuração do arquivo specs do GCC no reajuste, somado ao linkeditor
   quebrado --- o que poderia ser questionado pois, mesmo assim, o
 pré-processador ainda sim encontra o cabeçalho ``sched.h`` contendo a
 implementação do ``setns(int, int)``, então de alguma forma os caminhos para o
-diretório de cabeçalhos estão configurados corretamente, todavia essa hipótese
-ainda é a mais plausível;
+diretório de cabeçalhos estão configurados corretamente;
 - Falha na execução do *script* em si, por falta de ferramentas presentes na
   toolchain ou por essas não seguirem padrões atuais do POSIX.
 
-De qualquer forma, eu consegui corrigir esse erro utilizando a toolchain mais
+De qualquer forma, eu consegui corrigir este erro utilizando a toolchain mais
 recente, de 1 de Julho de 2022; agora o *script* de configuração do iproute2
 (e de outros programas) finalmente consegue identificar a presença de funções na
 biblioteca C.  
@@ -3543,8 +3635,7 @@ Em um formato de *diff*, a diferença seria essa:
 <     rm -f $TMPDIR/setnstest.c $TMPDIR/setnstest
 ```
 
-
-Esse erro originalmente foi percebido por mim, Luiz Antônio, enquanto eu
+Este erro originalmente foi percebido por mim, Luiz Antônio, enquanto eu
 trabalhava na versão 0.42 (codinome "El Mariachi") do Copacabana Linux, e então
 reportado na *issue* ``#73`` no repositório do Musl-LFS no Microsoft GitHub no
 dia 17 de Fevereiro de 2022[XY].  
@@ -3553,7 +3644,65 @@ mesmo na resposta ``1145479714`` à mesma *issue*[XX].
 
 ## *“O GNU m4 simplesmente não compila no sistema-base, devolve uma série de erros sobre "referência não-definida a \```error``'"”*
 
-Enquanto eu compilava o sistema-base do Copacabana em 31 de Agosto de 2022
+Enquanto eu compilava o sistema-base do Copacabana em 31 de Agosto de 2022, na
+parte onde monta-se as ferramentas de desenvolvimento, eu encontrei este
+problema:
+
+```console
+  CCLD     m4
+/tools/lib/gcc/x86_64-pindoramaCOPACABANA-linux-musl/10.3.1/../../../../x86_64-pindoramaCOPACABANA-linux-musl/bin/ld: ../lib/libm4.a(clean-temp.o): in function `create_temp_dir':
+/usr/src/cmp/m4-1.4.19/lib/clean-temp.c:234: undefined reference to `error'
+/tools/lib/gcc/x86_64-pindoramaCOPACABANA-linux-musl/10.3.1/../../../../x86_64-pindoramaCOPACABANA-linux-musl/bin/ld: /usr/src/cmp/m4-1.4.19/lib/clean-temp.c:249: undefined reference to `error'
+/tools/lib/gcc/x86_64-pindoramaCOPACABANA-linux-musl/10.3.1/../../../../x86_64-pindoramaCOPACABANA-linux-musl/bin/ld: ../lib/libm4.a(clean-temp.o): in function `do_rmdir':
+/usr/src/cmp/m4-1.4.19/lib/clean-temp.c:370: undefined reference to `error'
+/tools/lib/gcc/x86_64-pindoramaCOPACABANA-linux-musl/10.3.1/../../../../x86_64-pindoramaCOPACABANA-linux-musl/bin/ld: /usr/src/cmp/m4-1.4.19/lib/clean-temp.c:370: undefined reference to `error'
+/tools/lib/gcc/x86_64-pindoramaCOPACABANA-linux-musl/10.3.1/../../../../x86_64-pindoramaCOPACABANA-linux-musl/bin/ld: /usr/src/cmp/m4-1.4.19/lib/clean-temp.c:370: undefined reference to `error'
+/tools/lib/gcc/x86_64-pindoramaCOPACABANA-linux-musl/10.3.1/../../../../x86_64-pindoramaCOPACABANA-linux-musl/bin/ld: ../lib/libm4.a(execute.o):/usr/src/cmp/m4-1.4.19/lib/execute.c:347: more undefined references to `error' follow
+/tools/lib/gcc/x86_64-pindoramaCOPACABANA-linux-musl/10.3.1/../../../../x86_64-pindoramaCOPACABANA-linux-musl/bin/ld: ../lib/libm4.a(verror.o): in function `verror_at_line':
+/usr/src/cmp/m4-1.4.19/lib/verror.c:68: undefined reference to `error_at_line'
+/tools/lib/gcc/x86_64-pindoramaCOPACABANA-linux-musl/10.3.1/../../../../x86_64-pindoramaCOPACABANA-linux-musl/bin/ld: /usr/src/cmp/m4-1.4.19/lib/verror.c:70: undefined reference to `error'
+/tools/lib/gcc/x86_64-pindoramaCOPACABANA-linux-musl/10.3.1/../../../../x86_64-pindoramaCOPACABANA-linux-musl/bin/ld: /usr/src/cmp/m4-1.4.19/lib/verror.c:76: undefined reference to `error'
+/tools/lib/gcc/x86_64-pindoramaCOPACABANA-linux-musl/10.3.1/../../../../x86_64-pindoramaCOPACABANA-linux-musl/bin/ld: ../lib/libm4.a(xalloc-die.o): in function `xalloc_die':
+/usr/src/cmp/m4-1.4.19/lib/xalloc-die.c:34: undefined reference to `error'
+/tools/lib/gcc/x86_64-pindoramaCOPACABANA-linux-musl/10.3.1/../../../../x86_64-pindoramaCOPACABANA-linux-musl/bin/ld: ../lib/libm4.a(xprintf.o): in function `xvprintf':
+/usr/src/cmp/m4-1.4.19/lib/xprintf.c:50: undefined reference to `error'
+/tools/lib/gcc/x86_64-pindoramaCOPACABANA-linux-musl/10.3.1/../../../../x86_64-pindoramaCOPACABANA-linux-musl/bin/ld: ../lib/libm4.a(xprintf.o): in function `xvfprintf':
+/usr/src/cmp/m4-1.4.19/lib/xprintf.c:76: undefined reference to `error'
+/tools/lib/gcc/x86_64-pindoramaCOPACABANA-linux-musl/10.3.1/../../../../x86_64-pindoramaCOPACABANA-linux-musl/bin/ld: ../lib/libm4.a(xprintf.o):/usr/src/cmp/m4-1.4.19/lib/xprintf.c:76: more undefined references to `error' follow
+collect2: error: ld returned 1 exit status
+gmake[2]: *** [m4] Error 1
+gmake[2]: Leaving directory `/usr/src/cmp/m4-1.4.19/src'
+gmake[1]: *** [all-recursive] Error 1
+gmake[1]: Leaving directory `/usr/src/cmp/m4-1.4.19'
+gmake: *** [all] Error 2
+```
+
+Este erro ocorre pois, como pode ser visto, não há uma definição das funções
+``error`` e ``error_at_line``. Em outras palavras: elas aparentemente não
+existem na nossa biblioteca C e o *script* ``configure`` não estava ciente
+acerca disso, pois nós de fato temos um cabeçalho ``error.h``, mas que não tem
+as devidas definições.  
+Para corrigir isso, devemos --- assim como no Flex, no estágio da toolchain
+intermediária --- forçar o GNU auto\*conf a não usar o ``sys/cdefs.h`` do
+sistema-base e a usar a função ``error_at_line()`` e ``error()`` da Gnulib, ao
+configurarmos as variáveis de cachê ``ac_cv_lib_error_at_line`` e
+``ac_cv_header_sys_cdefs_h`` como "``no``", assim adicionando uma definição das
+ditas. 
+
+Este erro foi primeiramente descoberto, pelo que parece, por Daniel Kolesa, um
+desenvolvedor do projeto Void Linux, enquanto ele trabalhava no arquivo para
+compilar o GNU m4 pelo ``xbps-src`` presente no repositório void-packages, e
+então corrigido por ele mesmo no *commit*
+``4b6c115f475ec8d14047f01b3b4204d4293f59e8`` em 9 de Junho de 2021[ZW]; entretanto
+ele não deu nenhuma explicação sobre o erro em si, apenas uma descrição genérica.
+Já, no Copacabana, esse bug foi descoberto por mim, Luiz Antônio, enquanto eu
+trabalhava na versão 0.42 (codinome "El Mariachi") do Copacabana Linux, e então
+reportado na *issue* ``#81`` no repositório do Musl-LFS no Microsoft GitHub no
+dia 30 de Agosto de 2022[ZZ]. E então foi, por fim, consertado no dia 31 de Agosto
+de 2022 por mim mesmo na resposta ``1233496080`` à mesma *issue*[WW], assim como
+também já foi corrigido na documentação em si (ou seja, esse erro está aqui para
+fins históricos, pois não irá aparecer para você).
+
 
 [^1]: https://webcache.googleusercontent.com/search?q=cache:Ls6QkZbwhsIJ:https://stat.ethz.ch/R-manual/R-devel/library/utils/help/untar.html+&cd=9&hl=pt-BR&ct=clnk&gl=br#:~:text=OpenBSD
 [^2]: https://www.linuxfromscratch.org/museum/lfs-museum/8.4/LFS-BOOK-8.4-HTML/chapter05/gcc-pass2.html 
@@ -3663,6 +3812,9 @@ Enquanto eu compilava o sistema-base do Copacabana em 31 de Agosto de 2022
 [^82]: https://git.alpinelinux.org/aports/commit/main/tzdata/APKBUILD?id=f67da5868d0420d8d466dffbc3655ce1239a1f3b
 [^83]: https://en.wikipedia.org/wiki/Leap_second
 	https://museum.seiko.co.jp/en/knowledge/story_01
+[^84]: https://github.com/dslm4515/Musl-LFS/commit/5ee55e85ecfba776951ba8d0904d49577a56e3c9
+[^85]: https://github.com/void-linux/void-packages/blob/eb68f14525fe488bc769f2229e82d111ae3c309d/srcpkgs/binutils/template#L34-L48
+[^86]: https://git.alpinelinux.org/aports/tree/main/binutils/APKBUILD#n100
 
 Nota[12]: https://github.com/dslm4515/Musl-LFS/commit/19e881cd880ecd6fc8a6711c1c9038c2f3221381i
 
@@ -3670,3 +3822,6 @@ Nota[]: https://archlinux.org/people/developer-fellows/#dan
 Nota[]: https://patchwork.ozlabs.org/project/netdev/patch/m1mxgfkr3g.fsf@fess.ebiederm.org/
 Nota[XY]: https://github.com/dslm4515/Musl-LFS/issues/73
 Nota[XX]: https://github.com/dslm4515/Musl-LFS/issues/73#issuecomment-1145479714
+Nota[ZW]: https://github.com/void-linux/void-packages/commit/4b6c115f475ec8d14047f01b3b4204d4293f59e8
+Nota[ZZ]: https://github.com/dslm4515/Musl-LFS/issues/81
+Nota[WW]: https://github.com/dslm4515/Musl-LFS/issues/81#issuecomment-1233496080
