@@ -181,8 +181,12 @@ white-space: pre-wrap;
 <li><a href="#sortix-libz-bifurcação-da-zlib-1">Sortix libz (bifurcação da zlib)</a></li>
 <li><a href="#libbz2-do-bzip2">libbz2 (do bzip2)</a></li>
 <li><a href="#file-1">File</a></li>
+<li><a href="#gnu-m4-1">GNU m4</a></li>
+<li><a href="#bc-e-dc-do-yzena.com">bc e dc (do yzena.com)</a></li>
+<li><a href="#gnu-binary-utilities-binutils-1">GNU Binary Utilities (Binutils)</a></li>
+<li><a href="#gnu-multiple-precision-arithmetic-library-ou-simplesmente-gmp">GNU Multiple-Precision Arithmetic Library (ou simplesmente GMP)</a></li>
+<li><a href="#gnu-multiple-precision-floating-point-reliable-library-ou-simplesmente-mpfr">GNU Multiple Precision Floating-Point Reliable Library (ou simplesmente MPFR)</a></li>
 <li><a href="#gnu-ncurses-1">GNU ncurses</a></li>
-<li><a href="#readline">Readline</a></li>
 <li><a href="#heirloom-2007">Heirloom 2007</a></li>
 <li><a href="#lobase">lobase</a></li>
 </ul></li>
@@ -194,6 +198,7 @@ white-space: pre-wrap;
 <ul>
 <li><a href="#solução-secundária">Solução secundária</a></li>
 </ul></li>
+<li><a href="#o-gnu-m4-simplesmente-não-compila-no-sistema-base-devolve-uma-série-de-erros-sobrereferência-não-definida-a-error"><em>“O GNU m4 simplesmente não compila no sistema-base, devolve uma série de erros sobre”referência não-definida a `<code>error</code>’&quot;”</em></a></li>
 </ul></li>
 </ul>
 </nav>
@@ -379,7 +384,7 @@ Esse processo é análogo — para não dizer que é literalmente o mesmo, só q
 <h3 id="gnu-binary-utilities-binutils">GNU Binary Utilities (Binutils)</h3>
 <p>Não creio que seja necessário explicar a importância das GNU Binutils tanto nessa toolchain quanto no sistema-base. Um exemplo da importância desse pacote é que ele contém o linkeditor.</p>
 <h4 id="º-exporte-as-variáveis-de-ambiente-ao-fim-do-.bashrc">1º: Exporte as variáveis de ambiente ao fim do <code>~/.bashrc</code></h4>
-<p>Vá ao <code>~/.bashrc</code> (aquele que copiamos do repositório de desenvolvimento do Copacabana ao começo da compilação cruzada) e, ao fim do arquivo, “descomente” (esse verbo existe formalmente? Não faço ideia) essa linha:</p>
+<p>Vá ao <code>~/.bashrc</code> (aquele que copiamos do repositório de desenvolvimento do Copacabana ao começo da compilação cruzada) e, ao fim do arquivo, “descomente” essa linha:</p>
 <div class="sourceCode" id="cb27"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true"></a><span class="bu">export</span> <span class="va">CC</span> <span class="va">CXX</span> <span class="va">AR</span> <span class="va">AS</span> <span class="va">RANLIB</span> <span class="va">LD</span> <span class="va">STRIP</span></span></code></pre></div>
 <p>E então comente essa:</p>
 <div class="sourceCode" id="cb28"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true"></a><span class="bu">unset</span> <span class="va">CC</span> <span class="va">CXX</span> <span class="va">AR</span> <span class="va">AS</span> <span class="va">RANLIB</span> <span class="va">LD</span> <span class="va">STRIP</span></span></code></pre></div>
@@ -619,7 +624,7 @@ Posteriormente, por volta de 1987 (segundo o manual oficial do Bison, provido pe
 <div class="sourceCode" id="cb56"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true"></a><span class="fu">gmake</span> -j<span class="va">$(</span><span class="fu">grep</span> -c <span class="st">&#39;processor&#39;</span> /proc/cpuinfo<span class="va">)</span> <span class="kw">\</span></span>
 <span id="cb56-2"><a href="#cb56-2" aria-hidden="true"></a>    <span class="kw">&amp;&amp;</span> <span class="fu">gmake</span> install</span></code></pre></div>
 <h3 id="bzip2">bzip2</h3>
-<p>bzip2 é uma ferramenta para compressão de arquivos, à lá xz e gzip.<br />
+<p>bzip2 é uma ferramenta para compressão de arquivos, à lá xz e gzip, desenvolvida inicialmente pelo desenvolvedor britânico Julian Seward no ano de 1996. Antes da chegada do xz, o bzip2 era, segundo sua página principal, um dos compressores mais rápidos e eficientes disponíveis gratuitamente e livre de patentes. Em contraste ao gzip (e, anacronicamente, ao xz), o bzip2 faz uso do algoritmo BWT (“Método de <strong>B</strong>urrows–<strong>W</strong>heeler”, em português).<br />
 Nós instalaremos ela na toolchain pois alguns pacotes — como, por exemplo, o Heirloom Toolchest — estão compactados por tal.</p>
 <h4 id="º-compile-e-instale-na-toolchain-8">1º: Compile e instale na toolchain</h4>
 <p>Primeiramente, precisamos fazer algumas pequenas correções rápidas no Makefile utilizando o <code>sed</code>(1).<br />
@@ -636,7 +641,7 @@ Renomeie o arquivo de “<code>Makefile</code>” para “<code>Makefile.orig</c
 A palavra-chave <code>\1</code> do sed é utilizada para se referir ao primeiro grupo de padrões dentro de um par de parênteses “escapadas” (<code>\(\)</code>)<a href="#fn14" class="footnote-ref" id="fnref14" role="doc-noteref"><sup>14</sup></a> — este, no caso, sendo <code>\( ln -s -f \)</code>. Então, neste caso, teoricamente iríamos trocar <code>ln -s -f $(PREFIX)/bin/</code> por <code>ln -s -f</code>…? Hmmm, faz sentido considerando que assim a nossa ligação seria apenas entre arquivos, não entre o caminho <code>$(PREFIX)/bin/&lt;arquivo&gt;</code> completo;</li>
 <li><code>s@(PREFIX)/man@(PREFIX)/share/man@g</code>: Essa é clássica; nós apenas mudamos o caminho para as páginas de manual de <code>$(PREFIX)/man</code> para <code>$(PREFIX)/share/man</code>, o que vai facilitar nossa vida quando formos remover arquivos de documentação da nossa toolchain posteriormente.</li>
 </ul>
-<p>Após essa alteração no Makefile principal, antes de compilarmos o resto, precisamos (pré-)compilar uma versão dinâmica da libbzip2. Isso é extremamente simples, apenas rode o GNU make com o parâmetro <code>-f</code> para usarmos o Makefile da libbzip2, logo em seguida limpe o código-fonte.</p>
+<p>Após essa alteração no Makefile principal, antes de compilarmos o resto, precisamos (pré-)compilar uma versão dinâmica da libbz2. Isso é extremamente simples, apenas rode o GNU make com o parâmetro <code>-f</code> para usarmos o Makefile da libbz2, logo em seguida limpe o código-fonte.</p>
 <div class="sourceCode" id="cb59"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true"></a><span class="fu">gmake</span> -f Makefile-libbz2_so -j<span class="va">$(</span><span class="fu">grep</span> -c <span class="st">&#39;processor&#39;</span> /proc/cpuinfo<span class="va">)</span> <span class="kw">\</span></span>
 <span id="cb59-2"><a href="#cb59-2" aria-hidden="true"></a>    <span class="va">AR=$AR</span> <span class="kw">\</span></span>
 <span id="cb59-3"><a href="#cb59-3" aria-hidden="true"></a>    <span class="va">CC=$CC</span> <span class="kw">\</span></span>
@@ -822,7 +827,7 @@ No meio dessa correria, após várias tentativas e ideias (inclusive a de “des
 <span id="cb85-10"><a href="#cb85-10" aria-hidden="true"></a><span class="kw">&amp;&amp;</span> <span class="fu">install</span> -m444 pigz.1 /tools/share/man/man1 <span class="kw">\</span></span>
 <span id="cb85-11"><a href="#cb85-11" aria-hidden="true"></a><span class="kw">&amp;&amp;</span> <span class="fu">gmake</span> clean</span></code></pre></div>
 <h3 id="xz-utils-do-tukaani">XZ-Utils do Tukaani</h3>
-<p>Esse pacote provê a ferramenta de compressão <code>xz</code> entre algumas outras, que funciona nos moldes do gzip e, como disse antes, do bzip2.<br />
+<p>Esse pacote provê a ferramenta de compressão xz entre algumas outras, que funciona nos moldes do gzip e, como disse antes, do bzip2. Diferentemente do gzip e do bzip2, o xz faz uso do algoritmo LZMA/LZMA2 (<strong>L</strong>empel–<strong>Z</strong>iv–<strong>Ma</strong>rkov).<br />
 Estaremos instalando-o pois alguns pacotes — entre eles, o próprio núcleo Linux — estão compactados com o xz.</p>
 <h4 id="º-rode-o-script-configure-11">1º: Rode o <em>script</em> <code>configure</code></h4>
 <div class="sourceCode" id="cb86"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb86-1"><a href="#cb86-1" aria-hidden="true"></a><span class="ex">./configure</span> --prefix=/tools <span class="kw">\</span></span>
@@ -1029,7 +1034,8 @@ O Vim foi criado por Brian Moolenar no ano de 1990. Foi originalmente bifurcado 
 <span id="cb115-6"><a href="#cb115-6" aria-hidden="true"></a><span class="fu">chmod</span> 664 /var/adm/lastlog</span>
 <span id="cb115-7"><a href="#cb115-7" aria-hidden="true"></a><span class="fu">chmod</span> 600 /var/adm/btmp</span></code></pre></div>
 <h2 id="assando-o-bolo-compilando-pacotes-do-sistema-base">Assando o bolo: compilando pacotes do sistema-base</h2>
-<p>Essa é a parte em que vamos compilar todos os pacotes do sistema-base. Recomendo que você, já no shell do ambiente da Mitzune, configure a variável <code>CFLAGS</code> e <code>CXXFLAGS</code> — e evite usar configurações muito específicas caso esteja compilando para outra máquina ou para redistribuir.</p>
+<p>Essa é a parte em que vamos compilar todos os pacotes do sistema-base. Algo que vale lembrar é que, ao contrário da parte anterior, os pacotes terão apenas uma descrição fugaz sobre o que são e para o que servem, a fim de evitar redundância.<br />
+Recomendo que você, já no shell do ambiente da Mitzune, configure a variável <code>CFLAGS</code> e <code>CXXFLAGS</code> — e evite usar configurações muito específicas caso esteja compilando para outra máquina ou para redistribuir.</p>
 <h3 id="configurando-as-cflags">Configurando as <code>CFLAGS</code></h3>
 <p>As <code>CFLAGS</code>/<code>CXXFLAGS</code> que estou utilizando para as <em>tarballs</em> oficiais do Copacabana são essas:</p>
 <div class="sourceCode" id="cb116"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb116-1"><a href="#cb116-1" aria-hidden="true"></a><span class="co"># CFLAGS/CXXFLAGS genéricas para programas</span></span>
@@ -1299,8 +1305,8 @@ O NSSS foi criado a fim de ser uma implementação do NSS para bibliotecas C que
 <span id="cb162-2"><a href="#cb162-2" aria-hidden="true"></a>    <span class="kw">&amp;&amp;</span> <span class="fu">gmake</span> install</span></code></pre></div>
 <h3 id="utmps-do-skarnet">utmps (do Skarnet)</h3>
 <p>O utmps provê funções para lidar com os arquivos de banco de dados <code>utmp</code> e <code>wtmp</code>, que guardam registro de usuários presentes no sistema no momento e de todos os usuários que já entraram e sairam do sistema, respectivamente.<a href="#fn76" class="footnote-ref" id="fnref76" role="doc-noteref"><sup>76</sup></a><br />
-Geralmente, essas funções seriam implementadas diretamente na biblioteca C do sistema, entretanto os desenvolvedores da musl decidiram por não implementá-la por razões de segurança, o que é abordado de forma específica em seu Q.F.P., na pergunta “Por que a funcionalidade do utmp/wtmp é implementada apenas como um rascunho?”.<a href="#fn77" class="footnote-ref" id="fnref77" role="doc-noteref"><sup>77</sup></a> Entre as razões estaria o fato de que, se houvesse uma implementação completa, a equipe da musl teria trabalho dobrado em fazer algo que não comprometesse a segurança dos usuários do sistema e de que para se acessar e modificar o banco de dados do utmp/wtmp precisaria-se que os binários que o fizessem tivessem permissões de superusuário, o que poderia, potencialmente, abrir buracos de segurança. Com o propósito de se criar uma implementação segura e independente da biblioteca C, surgiu o utmps por mão do projeto Skarnet. Essa implementação se torna mais segura pois os únicos binários que precisam, de fato, acessar o banco de dados são as <em>daemons</em> do utmps — <code>utmps-utmpd</code> e <code>utmps-wtmpd</code>, respectivamente — e os programas que precisam acessá-lo na realidade estarão fazendo requisições para as <em>daemons</em> por meio da libutmps.<a href="#fn78" class="footnote-ref" id="fnref78" role="doc-noteref"><sup>78</sup></a> Essa solução, apesar de simples e aparentemente “antiquada”, é genial e funciona bem — até melhor, pelo ponto de vista de segurança arquitetural, do que o que fora implementado por UNIXes proprietários e pela própria Bell Labs durante o arco dos anos 1970 e 2000.<br />
-Algo que possivelmente você não está se perguntando mas que talvez seja interessante é a etimologia dos termos em si. Primeiramente (e, se pá, o mais simples de se deduzir), o “<code>u</code>” em “<code>utmp</code>” se referiria aos usuários (“<em><strong>u</strong>sers</em>”) atualmente presentes (“logados”) no sistema e o “<code>w</code>” em “<code>wtmp</code>” se referiria a quem (“<em><strong>w</strong>ho</em>”) já esteve presente no sistema; ambos também contém “tmp” em seus nomes pois, originalmente no UNIX v4, esses arquivos não estariam localizados no diretório com arquivos contendo informações variáveis sobre a administração do sistema (<code>/var/adm</code>), que nem sequer existia ainda, mas sim no diretório temporário (<code>/tmp</code>).<a href="#fn79" class="footnote-ref" id="fnref79" role="doc-noteref"><sup>79</sup></a> Logo, “<code>utmp</code>” seria “o arquivo de todos os usuários presentes no sistema” e “<code>wtmp</code>” seria “o arquivo de todos os usuários que já estiveram presentes no sistema em algum momento” — abrindo uma pequena tangente, o “<code>tmp</code>”, mesmo dando a ideia de que o arquivo seria temporário e que seria removido na próxima reinicialização do sistema, como aconteceria em um sistema UNIX-compatível atual com um diretório temporário cujo sistema de arquivos ficaria hospedado na memória RAM, ele não seria exatamente temporário, pois não seria apagado/limpo em cada reinicialização; logo o “<code>tmp</code>” indicaria apenas que ele estaria presente no diretório temporário.</p>
+Geralmente, essas funções seriam implementadas diretamente na biblioteca C do sistema, entretanto os desenvolvedores da musl decidiram por não implementá-la por razões de segurança, o que é abordado de forma específica em seu Q.F.P., na pergunta “Por que a funcionalidade do utmp/wtmp é implementada apenas como um rascunho?”.<a href="#fn77" class="footnote-ref" id="fnref77" role="doc-noteref"><sup>77</sup></a> Entre as razões estaria o fato de que, se houvesse uma implementação completa, a equipe da musl teria trabalho dobrado em fazer algo que não comprometesse a segurança dos usuários do sistema e de que para se acessar e modificar o banco de dados do utmp/wtmp precisaria-se que os binários que o fizessem tivessem permissões de superusuário, o que poderia, potencialmente, abrir buracos de segurança. Com o propósito de se criar uma implementação segura e independente da biblioteca C, surgiu o utmps por mão do projeto Skarnet. Essa implementação se torna mais segura pois os únicos binários que precisam, de fato, acessar o banco de dados são as <em>daemons</em> do utmps — <code>utmps-utmpd</code> e <code>utmps-wtmpd</code>, respectivamente — e os programas que precisam acessá-lo na realidade estarão fazendo requisições para as <em>daemons</em> por meio da libutmps.<a href="#fn78" class="footnote-ref" id="fnref78" role="doc-noteref"><sup>78</sup></a> Essa solução, apesar de simples e aparentemente “antiquada”, é genial e funciona bem — até melhor, pelo ponto de vista de segurança arquitetural, do que o que fora implementado por UNIXes proprietários e pela própria Bell Labs durante o arco dos anos 1970 e 2000.</p>
+<p>Algo que possivelmente você não está se perguntando, mas que talvez seja interessante, é a etimologia dos termos em si. Primeiramente (e, se pá, o mais simples de se deduzir), o “<code>u</code>” em “<code>utmp</code>” se referiria aos usuários (“<em><strong>u</strong>sers</em>”) atualmente presentes (“logados”) no sistema e o “<code>w</code>” em “<code>wtmp</code>” se referiria a quem (“<em><strong>w</strong>ho</em>”) já esteve presente no sistema; ambos também contém “tmp” em seus nomes pois, originalmente no UNIX v4, esses arquivos não estariam localizados no diretório com arquivos contendo informações variáveis sobre a administração do sistema (<code>/var/adm</code>), que nem sequer existia ainda, mas sim no diretório temporário (<code>/tmp</code>).<a href="#fn79" class="footnote-ref" id="fnref79" role="doc-noteref"><sup>79</sup></a> Logo, “<code>utmp</code>” seria “o arquivo de todos os usuários presentes no sistema” e “<code>wtmp</code>” seria “o arquivo de todos os usuários que já estiveram presentes no sistema em algum momento” — abrindo uma pequena tangente, o “<code>tmp</code>”, mesmo dando a ideia de que o arquivo seria temporário e que seria removido na próxima reinicialização do sistema, como aconteceria em um sistema UNIX-compatível atual com um diretório temporário cujo sistema de arquivos ficaria hospedado na memória RAM, ele não seria exatamente temporário, pois não seria apagado/limpo em cada reinicialização; logo o “<code>tmp</code>” indicaria apenas que ele estaria presente no diretório temporário.</p>
 <h4 id="º-rode-o-script-configure-20">1º: Rode o <em>script</em> <code>configure</code></h4>
 <div class="sourceCode" id="cb163"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb163-1"><a href="#cb163-1" aria-hidden="true"></a><span class="ex">./configure</span> --enable-shared  <span class="kw">\</span></span>
 <span id="cb163-2"><a href="#cb163-2" aria-hidden="true"></a>    <span class="ex">--enable-static</span>      <span class="kw">\</span></span>
@@ -1349,7 +1355,8 @@ Para desempacotar da maneira correta, rode o comando abaixo, que irá criar um d
 <h4 id="º-compile-e-instale-na-toolchain-24">2º: Compile e instale na toolchain</h4>
 <div class="sourceCode" id="cb168"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb168-1"><a href="#cb168-1" aria-hidden="true"></a><span class="va">zoneinfo=</span><span class="st">&#39;/usr/share/lib/zoneinfo&#39;</span></span>
 <span id="cb168-2"><a href="#cb168-2" aria-hidden="true"></a><span class="bu">export</span> <span class="va">zoneinfo</span> <span class="kw">\</span></span>
-<span id="cb168-3"><a href="#cb168-3" aria-hidden="true"></a><span class="kw">&amp;&amp;</span> <span class="fu">gmake</span> TZDIR=<span class="st">&quot;</span><span class="va">$zoneinfo</span><span class="st">&quot;</span> KSHELL=<span class="st">&#39;/bin/ksh&#39;</span></span></code></pre></div>
+<span id="cb168-3"><a href="#cb168-3" aria-hidden="true"></a><span class="kw">&amp;&amp;</span> <span class="fu">gmake</span> -j<span class="va">$(</span><span class="fu">grep</span> -c <span class="st">&#39;processor&#39;</span> /proc/cpuinfo<span class="va">)</span> <span class="kw">\</span></span>
+<span id="cb168-4"><a href="#cb168-4" aria-hidden="true"></a>    <span class="va">TZDIR=</span><span class="st">&quot;</span><span class="va">$zoneinfo</span><span class="st">&quot;</span> <span class="va">KSHELL=</span><span class="st">&#39;/bin/ksh&#39;</span></span></code></pre></div>
 <p>Segundo o <code>APKBUILD</code> do Alpine Linux, mais especificamente no <em>commit</em> <code>f67da5868d0420d8d466dffbc3655ce1239a1f3b</code> feito por Sören Tempel em 03 de Outubro de 2015<a href="#fn82" class="footnote-ref" id="fnref82" role="doc-noteref"><sup>82</sup></a>, devemos instalar tanto os binários quanto a base de dados manualmente pois o Makefile estaria “quebrado”, e com o adendo de que outras distribuições Linux já estariam fazendo isso.<br />
 Entretanto, mesmo buscando menções a essa tal falha no alvo <code>install</code> do Makefile na Internet, eu não consegui achar nada muito promissor acerca da motivação original.<br />
 Sem mais delongas, execute os comandos abaixo para instalar e gerar os fusos-horários.</p>
@@ -1400,50 +1407,116 @@ Estaremos utilizando o fuso horário para Nova Iorque pois o padrão POSIX reque
 </ul>
 <p>Esse (relativamente) grande bloco de comandos é, praticamente, o que o Makefile faria e deve ser o suficiente para instalar todo o banco de dados.</p>
 <h3 id="sortix-libz-bifurcação-da-zlib-1">Sortix libz (bifurcação da zlib)</h3>
+<p>A libz do Sortix é uma bifurcação da biblioteca de compressão zlib.<br />
+Estaremos compilando-a agora pois, além de ser dependência de tempo de compilação e de execução de alguns pacotes essenciais que virão a seguir, como as GNU Binutils, o File e afins. No caso do Heirloom, por este ser linkeditado estaticamente, a libz será necessária apenas para o estágio de compilação, mas isso acaba mais por ser uma nota de rodapé.</p>
 <h4 id="º-rode-o-script-configure-21">1º: Rode o <em>script</em> <code>configure</code></h4>
 <div class="sourceCode" id="cb172"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb172-1"><a href="#cb172-1" aria-hidden="true"></a><span class="ex">./configure</span> --prefix=/usr <span class="kw">\</span></span>
 <span id="cb172-2"><a href="#cb172-2" aria-hidden="true"></a>    <span class="ex">--enable-static</span> <span class="kw">\</span></span>
 <span id="cb172-3"><a href="#cb172-3" aria-hidden="true"></a>    <span class="ex">--enable-shared</span></span></code></pre></div>
 <h4 id="º-compile-e-instale-no-sistema-6">2º: Compile e instale no sistema</h4>
-<div class="sourceCode" id="cb173"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb173-1"><a href="#cb173-1" aria-hidden="true"></a><span class="fu">gmake</span> install-shared libdir=/lib <span class="kw">\</span></span>
-<span id="cb173-2"><a href="#cb173-2" aria-hidden="true"></a><span class="kw">&amp;&amp;</span> <span class="fu">gmake</span> install-static libdir=/usr/lib</span></code></pre></div>
+<div class="sourceCode" id="cb173"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb173-1"><a href="#cb173-1" aria-hidden="true"></a><span class="fu">gmake</span> -j<span class="va">$(</span><span class="fu">grep</span> -c <span class="st">&#39;processor&#39;</span> /proc/cpuinfo<span class="va">)</span> <span class="kw">\</span></span>
+<span id="cb173-2"><a href="#cb173-2" aria-hidden="true"></a>    <span class="ex">install-static</span> libdir=/usr/lib <span class="kw">\</span></span>
+<span id="cb173-3"><a href="#cb173-3" aria-hidden="true"></a><span class="kw">&amp;&amp;</span> <span class="fu">gmake</span> -j<span class="va">$(</span><span class="fu">grep</span> -c <span class="st">&#39;processor&#39;</span> /proc/cpuinfo<span class="va">)</span> <span class="kw">\</span></span>
+<span id="cb173-4"><a href="#cb173-4" aria-hidden="true"></a>    <span class="ex">install-shared</span> libdir=/lib <span class="kw">\</span></span>
+<span id="cb173-5"><a href="#cb173-5" aria-hidden="true"></a><span class="kw">&amp;&amp;</span> <span class="fu">ln</span> -s /lib/libz.so.?.?.? /usr/lib/libz.so</span></code></pre></div>
 <h3 id="libbz2-do-bzip2">libbz2 (do bzip2)</h3>
+<p>A libbz2 provê funções para compressão e decompressão de arquivos no formato do bzip2.<br />
+Estaremos compilando a biblioteca do bzip2 antes das ferramentas em si pois nós queremos poder usar o suporte à libbz2 no Heirloom — além de também ser dependência do File enquanto biblioteca dinâmica.</p>
+<h4 id="º-compile-e-instale-no-sistema-7">1º: Compile e instale no sistema</h4>
+<div class="sourceCode" id="cb174"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb174-1"><a href="#cb174-1" aria-hidden="true"></a><span class="fu">gmake</span> -j<span class="va">$(</span><span class="fu">grep</span> -c <span class="st">&#39;processor&#39;</span> /proc/cpuinfo<span class="va">)</span> -f Makefile-libbz2_so <span class="kw">\</span></span>
+<span id="cb174-2"><a href="#cb174-2" aria-hidden="true"></a>    <span class="kw">&amp;&amp;</span> <span class="fu">gmake</span> -j<span class="va">$(</span><span class="fu">grep</span> -c <span class="st">&#39;processor&#39;</span> /proc/cpuinfo<span class="va">)</span> -f Makefile libbz2.a <span class="kw">\</span></span>
+<span id="cb174-3"><a href="#cb174-3" aria-hidden="true"></a>    <span class="kw">&amp;&amp;</span> <span class="ex">ranlib</span> libbz2.a <span class="kw">\</span></span>
+<span id="cb174-4"><a href="#cb174-4" aria-hidden="true"></a><span class="kw">&amp;&amp;</span> <span class="fu">install</span> -m644 libbz2.so.* /lib <span class="kw">\</span></span>
+<span id="cb174-5"><a href="#cb174-5" aria-hidden="true"></a><span class="kw">&amp;&amp;</span> <span class="fu">ln</span> -s /lib/libbz2.so.?.?.? /usr/lib/libbz2.so <span class="kw">\</span></span>
+<span id="cb174-6"><a href="#cb174-6" aria-hidden="true"></a><span class="kw">&amp;&amp;</span> <span class="fu">install</span> -m644 bzlib.h /usr/include <span class="kw">\</span></span>
+<span id="cb174-7"><a href="#cb174-7" aria-hidden="true"></a><span class="kw">&amp;&amp;</span> <span class="fu">install</span> -m644 libbz2.a /usr/lib</span></code></pre></div>
 <h3 id="file-1">File</h3>
+<p>Essa é uma (das várias) implementações do comando <code>file</code>(1), utilizado para identificar arquivos e dependência do GNU auto*conf.</p>
 <h4 id="º-rode-o-script-configure-22">1º: Rode o <em>script</em> <code>configure</code></h4>
-<div class="sourceCode" id="cb174"><pre class="sourceCode sh"><code class="sourceCode bash"></code></pre></div>
+<div class="sourceCode" id="cb175"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb175-1"><a href="#cb175-1" aria-hidden="true"></a><span class="ex">./configure</span> --prefix=/usr</span></code></pre></div>
+<h4 id="º-compile-e-instale-no-sistema-8">2º: Compile e instale no sistema</h4>
+<div class="sourceCode" id="cb176"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb176-1"><a href="#cb176-1" aria-hidden="true"></a><span class="fu">gmake</span> -j<span class="va">$(</span><span class="fu">grep</span> -c <span class="st">&#39;processor&#39;</span> /proc/cpuinfo<span class="va">)</span> <span class="kw">\</span></span>
+<span id="cb176-2"><a href="#cb176-2" aria-hidden="true"></a>    <span class="kw">&amp;&amp;</span> <span class="fu">gmake</span> install</span></code></pre></div>
+<h3 id="gnu-m4-1">GNU m4</h3>
+<p>Essa é a implementação do Projeto GNU do processador de macros m4, utilizada pelo GNU auto*conf.</p>
+<h4 id="º-rode-o-script-configure-23">1º: Rode o <em>script</em> <code>configure</code></h4>
+<div class="sourceCode" id="cb177"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb177-1"><a href="#cb177-1" aria-hidden="true"></a><span class="va">ac_cv_lib_error_at_line=</span>no <span class="kw">\</span></span>
+<span id="cb177-2"><a href="#cb177-2" aria-hidden="true"></a><span class="va">ac_cv_header_sys_cdefs_h=</span>no <span class="kw">\</span></span>
+<span id="cb177-3"><a href="#cb177-3" aria-hidden="true"></a><span class="ex">./configure</span> --prefix=/usr/ccs</span></code></pre></div>
+<h4 id="º-compile-e-instale-no-sistema-9">2º: Compile e instale no sistema</h4>
+<div class="sourceCode" id="cb178"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb178-1"><a href="#cb178-1" aria-hidden="true"></a><span class="fu">gmake</span> -j<span class="va">$(</span><span class="fu">grep</span> -c <span class="st">&#39;processor&#39;</span> /proc/cpuinfo<span class="va">)</span> <span class="kw">\</span></span>
+<span id="cb178-2"><a href="#cb178-2" aria-hidden="true"></a>    <span class="kw">&amp;&amp;</span> <span class="fu">gmake</span> install</span></code></pre></div>
+<h3 id="bc-e-dc-do-yzena.com">bc e dc (do yzena.com)</h3>
+<p>Essa é a implementação das calculadora dc (“<em>desk calculator</em>”, ou, em tradução literal, “calculadora de mesa”) e da calculadora bc (“<em>basic calculator</em>”, ou, em tradução literal, “calculadora básica”).</p>
+<h4 id="º-rode-o-script-configure-24">1º: Rode o <em>script</em> <code>configure</code></h4>
+<div class="sourceCode" id="cb179"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb179-1"><a href="#cb179-1" aria-hidden="true"></a><span class="va">CC=</span>gcc <span class="va">LDFLAGS=</span><span class="st">&#39;-static&#39;</span> <span class="ex">./configure</span> --prefix=/usr -O3</span></code></pre></div>
+<h4 id="º-compile-e-instale-no-sistema-10">2º: Compile e instale no sistema</h4>
+<div class="sourceCode" id="cb180"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb180-1"><a href="#cb180-1" aria-hidden="true"></a><span class="fu">gmake</span> -j<span class="va">$(</span><span class="fu">grep</span> -c <span class="st">&#39;processor&#39;</span> /proc/cpuinfo<span class="va">)</span> <span class="kw">\</span></span>
+<span id="cb180-2"><a href="#cb180-2" aria-hidden="true"></a>    <span class="kw">&amp;&amp;</span> <span class="fu">gmake</span> install</span></code></pre></div>
+<h3 id="gnu-binary-utilities-binutils-1">GNU Binary Utilities (Binutils)</h3>
+<p>Esse pacote contém diversas ferramentas para manusear binários, entre elas, como citei anteriormente, o linkeditor.</p>
+<h4 id="º-rode-o-script-configure-25">1º: Rode o <em>script</em> <code>configure</code></h4>
+<div class="sourceCode" id="cb181"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb181-1"><a href="#cb181-1" aria-hidden="true"></a><span class="ex">./configure</span> <span class="kw">\</span></span>
+<span id="cb181-2"><a href="#cb181-2" aria-hidden="true"></a>    <span class="ex">--prefix</span>=/usr/ccs <span class="kw">\</span></span>
+<span id="cb181-3"><a href="#cb181-3" aria-hidden="true"></a>    <span class="ex">--enable-ld</span> <span class="kw">\</span></span>
+<span id="cb181-4"><a href="#cb181-4" aria-hidden="true"></a>    <span class="ex">--enable-gold</span>=default <span class="kw">\</span></span>
+<span id="cb181-5"><a href="#cb181-5" aria-hidden="true"></a>    <span class="ex">--enable-64-bit-bfd</span> <span class="kw">\</span></span>
+<span id="cb181-6"><a href="#cb181-6" aria-hidden="true"></a>    <span class="ex">--enable-relro</span> <span class="kw">\</span></span>
+<span id="cb181-7"><a href="#cb181-7" aria-hidden="true"></a>    <span class="ex">--enable-lto</span> <span class="kw">\</span></span>
+<span id="cb181-8"><a href="#cb181-8" aria-hidden="true"></a>    <span class="ex">--enable-threads</span> <span class="kw">\</span></span>
+<span id="cb181-9"><a href="#cb181-9" aria-hidden="true"></a>    <span class="ex">--enable-deterministic-archives</span> <span class="kw">\</span></span>
+<span id="cb181-10"><a href="#cb181-10" aria-hidden="true"></a>    <span class="ex">--enable-default-execstack</span>=no <span class="kw">\</span></span>
+<span id="cb181-11"><a href="#cb181-11" aria-hidden="true"></a>    <span class="ex">--enable-targets</span>=x86_64-pep <span class="kw">\</span></span>
+<span id="cb181-12"><a href="#cb181-12" aria-hidden="true"></a>    <span class="ex">--enable-default-hash-style</span>=sysv <span class="kw">\</span></span>
+<span id="cb181-13"><a href="#cb181-13" aria-hidden="true"></a>    <span class="ex">--disable-multilib</span> <span class="kw">\</span></span>
+<span id="cb181-14"><a href="#cb181-14" aria-hidden="true"></a>    <span class="ex">--disable-gprofng</span> <span class="kw">\</span></span>
+<span id="cb181-15"><a href="#cb181-15" aria-hidden="true"></a>    <span class="ex">--disable-werror</span> <span class="kw">\</span></span>
+<span id="cb181-16"><a href="#cb181-16" aria-hidden="true"></a>    <span class="ex">--disable-nls</span> <span class="kw">\</span></span>
+<span id="cb181-17"><a href="#cb181-17" aria-hidden="true"></a>    <span class="ex">--with-mmap</span> <span class="kw">\</span></span>
+<span id="cb181-18"><a href="#cb181-18" aria-hidden="true"></a>    <span class="ex">--with-system-zlib</span></span></code></pre></div>
+<h4 id="º-compile-e-instale-no-sistema-11">2º: Compile e instale no sistema</h4>
+<div class="sourceCode" id="cb182"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb182-1"><a href="#cb182-1" aria-hidden="true"></a><span class="fu">gmake</span> -j<span class="va">$(</span><span class="fu">grep</span> -c <span class="st">&#39;processor&#39;</span> /proc/cpuinfo<span class="va">)</span></span></code></pre></div>
+<p>Após compilarmos a parte principal do pacote, segundo o Musl-LFS, nós deveríamos compilar as bibliotecas libbfd, libiberty, libopcodes utilizando a opção <code>-fPIC</code> nas <code>CFLAGS</code>. Isso foi posto no Musl-LFS no dia 23 de Agosto de 2020 pelo Derrick (<code>dslm4515</code>), no <em>commit</em> <code>5ee55e85ecfba776951ba8d0904d49577a56e3c9</code>, cuja descrição é “Atualizadas as binutils para [a versão] 2.35 com proteção do Void Linux.”<a href="#fn84" class="footnote-ref" id="fnref84" role="doc-noteref"><sup>84</sup></a>; entretanto, como indicado, originalmente surgiu no Void Linux, mais especificamente em 12 de Junho de 2012, tendo sido implementado pelo Juan RP (<code>xtraeme</code>) no <em>commit</em> <code>eb68f14525fe488bc769f2229e82d111ae3c309d</code><a href="#fn85" class="footnote-ref" id="fnref85" role="doc-noteref"><sup>85</sup></a>. O Alpine Linux faz o mesmo tipo de proteção, todavia usando apenas a opção <code>--with-pic</code> no <em>script</em> <code>configure</code><a href="#fn86" class="footnote-ref" id="fnref86" role="doc-noteref"><sup>86</sup></a>, entretanto, estaremos fazendo o processo de recompilar as bibliotecas manualmente pois assim temos um maior controle do que realmente vai ser compilado com a tal opção, além de também estarmos tendo que “esconder” a libbfd do linkeditor, a fim de evitar que outras bibliotecas ou programas façam uso de sua API não-estável — palavras da explicação feita no <em>commit</em> do <code>xtraeme</code>, diga-se de passagem.</p>
+<p>Sobre a opção <code>-fPIC</code>, pois bem: o parâmetro <code>-f</code> significa, quase que num “tratado” entre compiladores C atuais e não apenas no GCC, “<em>flag</em>” que, na falta de uma boa tradução (e não, não é “bandeira”), funciona para dar instruções adicionais ao compilador sobre como gerar o código de montagem, além do que já lhe é passado pelo arquivo <code>specs</code> (o que já dissertamos sobre anteriormente)<a href="#fn87" class="footnote-ref" id="fnref87" role="doc-noteref"><sup>87</sup></a>; já “PIC” é um acrônimo para Código Independente de Posição (ou “<em>Position Independent Code</em>”, em inglês), é um conceito um bocado mais difícil de explicar do que o que é uma “<em>flag</em>”, mas vamos lá.</p>
+<div class="sourceCode" id="cb183"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb183-1"><a href="#cb183-1" aria-hidden="true"></a></span></code></pre></div>
+<h3 id="gnu-multiple-precision-arithmetic-library-ou-simplesmente-gmp">GNU Multiple-Precision Arithmetic Library (ou simplesmente GMP)</h3>
+<h4 id="º-rode-o-script-configure-26">1º: Rode o <em>script</em> <code>configure</code></h4>
+<h4 id="º-compile-e-instale-no-sistema-12">2º: Compile e instale no sistema</h4>
+<h3 id="gnu-multiple-precision-floating-point-reliable-library-ou-simplesmente-mpfr">GNU Multiple Precision Floating-Point Reliable Library (ou simplesmente MPFR)</h3>
+<h4 id="º-rode-o-script-configure-27">1º: Rode o <em>script</em> <code>configure</code></h4>
+<h4 id="º-compile-e-instale-no-sistema-13">2º: Compile e instale no sistema</h4>
 <h3 id="gnu-ncurses-1">GNU ncurses</h3>
-<div class="sourceCode" id="cb175"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb175-1"><a href="#cb175-1" aria-hidden="true"></a>           <span class="ex">./configure</span> --prefix=/usr <span class="kw">\</span></span>
-<span id="cb175-2"><a href="#cb175-2" aria-hidden="true"></a>            <span class="ex">--mandir</span>=/usr/share/man   <span class="kw">\</span></span>
-<span id="cb175-3"><a href="#cb175-3" aria-hidden="true"></a>            <span class="ex">--with-shared</span>             <span class="kw">\</span></span>
-<span id="cb175-4"><a href="#cb175-4" aria-hidden="true"></a>            <span class="ex">--with-normal</span>             <span class="kw">\</span></span>
-<span id="cb175-5"><a href="#cb175-5" aria-hidden="true"></a>            <span class="ex">--without-debug</span>           <span class="kw">\</span></span>
-<span id="cb175-6"><a href="#cb175-6" aria-hidden="true"></a>            <span class="ex">--without-normal</span>          <span class="kw">\</span></span>
-<span id="cb175-7"><a href="#cb175-7" aria-hidden="true"></a>            <span class="ex">--enable-termcap</span>          <span class="kw">\</span></span>
-<span id="cb175-8"><a href="#cb175-8" aria-hidden="true"></a>            <span class="ex">--enable-pc-files</span>         <span class="kw">\</span></span>
-<span id="cb175-9"><a href="#cb175-9" aria-hidden="true"></a>            <span class="ex">--enable-widec</span>            <span class="kw">\</span></span>
-<span id="cb175-10"><a href="#cb175-10" aria-hidden="true"></a>            <span class="ex">--with-pkg-config-libdir</span>=/usr/lib/pkgconfig</span></code></pre></div>
-<h3 id="readline">Readline</h3>
+<div class="sourceCode" id="cb184"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb184-1"><a href="#cb184-1" aria-hidden="true"></a>           <span class="ex">./configure</span> --prefix=/usr <span class="kw">\</span></span>
+<span id="cb184-2"><a href="#cb184-2" aria-hidden="true"></a>            <span class="ex">--mandir</span>=/usr/share/man   <span class="kw">\</span></span>
+<span id="cb184-3"><a href="#cb184-3" aria-hidden="true"></a>            <span class="ex">--with-shared</span>             <span class="kw">\</span></span>
+<span id="cb184-4"><a href="#cb184-4" aria-hidden="true"></a>            <span class="ex">--with-normal</span>             <span class="kw">\</span></span>
+<span id="cb184-5"><a href="#cb184-5" aria-hidden="true"></a>            <span class="ex">--without-debug</span>           <span class="kw">\</span></span>
+<span id="cb184-6"><a href="#cb184-6" aria-hidden="true"></a>            <span class="ex">--without-normal</span>          <span class="kw">\</span></span>
+<span id="cb184-7"><a href="#cb184-7" aria-hidden="true"></a>            <span class="ex">--enable-termcap</span>          <span class="kw">\</span></span>
+<span id="cb184-8"><a href="#cb184-8" aria-hidden="true"></a>            <span class="ex">--enable-pc-files</span>         <span class="kw">\</span></span>
+<span id="cb184-9"><a href="#cb184-9" aria-hidden="true"></a>            <span class="ex">--enable-widec</span>            <span class="kw">\</span></span>
+<span id="cb184-10"><a href="#cb184-10" aria-hidden="true"></a>            <span class="ex">--with-pkg-config-libdir</span>=/usr/lib/pkgconfig</span></code></pre></div>
 <h3 id="heirloom-2007">Heirloom 2007</h3>
-<div class="sourceCode" id="cb176"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb176-1"><a href="#cb176-1" aria-hidden="true"></a><span class="fu">mv</span> bin/* usr/bin/</span></code></pre></div>
-<div class="sourceCode" id="cb177"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb177-1"><a href="#cb177-1" aria-hidden="true"></a><span class="kw">for</span> <span class="ex">i</span> in usr/bin/{STTY,bfs,cat,ch<span class="dt">{grp,mod,own}</span>,copy,date,df<span class="dt">{,space}</span>,du,echo,ed,expr,<span class="kw">\</span></span>
-<span id="cb177-2"><a href="#cb177-2" aria-hidden="true"></a>    <span class="dt">{,f,e,p}</span><span class="ex">grep</span>,hostname,install,kill,lc,listusers,logname,ls,mk<span class="dt">{dir,fifo,nod}</span>,mt,mvdir,<span class="kw">\</span></span>
-<span id="cb177-3"><a href="#cb177-3" aria-hidden="true"></a>    <span class="ex">oawk</span>,pathchk,ps,pwd,rm<span class="dt">{,dir}</span>,sleep,stty,sync,tape<span class="dt">{,cntl}</span>,tcopy,test,touch,tty,uname,w<span class="dt">{,ho{,ami,do}}</span>}; <span class="kw">do</span></span>
-<span id="cb177-4"><a href="#cb177-4" aria-hidden="true"></a>  <span class="fu">cp</span> -v <span class="va">$i</span> bin/ <span class="kw">\</span></span>
-<span id="cb177-5"><a href="#cb177-5" aria-hidden="true"></a>  <span class="kw">&amp;&amp;</span> <span class="fu">rm</span> -vf <span class="va">$i</span></span>
-<span id="cb177-6"><a href="#cb177-6" aria-hidden="true"></a><span class="kw">done</span></span></code></pre></div>
-<div class="sourceCode" id="cb178"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb178-1"><a href="#cb178-1" aria-hidden="true"></a><span class="fu">mv</span> usr/bin/logins usr/sbin/</span></code></pre></div>
+<div class="sourceCode" id="cb185"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb185-1"><a href="#cb185-1" aria-hidden="true"></a><span class="fu">mv</span> bin/* usr/bin/</span></code></pre></div>
+<div class="sourceCode" id="cb186"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb186-1"><a href="#cb186-1" aria-hidden="true"></a><span class="kw">for</span> <span class="ex">i</span> in usr/bin/{STTY,bfs,cat,ch<span class="dt">{grp,mod,own}</span>,copy,date,df<span class="dt">{,space}</span>,du,echo,ed,expr,<span class="kw">\</span></span>
+<span id="cb186-2"><a href="#cb186-2" aria-hidden="true"></a>    <span class="dt">{,f,e,p}</span><span class="ex">grep</span>,hostname,install,kill,lc,listusers,logname,ls,mk<span class="dt">{dir,fifo,nod}</span>,mt,mvdir,<span class="kw">\</span></span>
+<span id="cb186-3"><a href="#cb186-3" aria-hidden="true"></a>    <span class="ex">oawk</span>,pathchk,ps,pwd,rm<span class="dt">{,dir}</span>,sleep,stty,sync,tape<span class="dt">{,cntl}</span>,tcopy,test,touch,tty,uname,w<span class="dt">{,ho{,ami,do}}</span>}; <span class="kw">do</span></span>
+<span id="cb186-4"><a href="#cb186-4" aria-hidden="true"></a>  <span class="fu">cp</span> -v <span class="va">$i</span> bin/ <span class="kw">\</span></span>
+<span id="cb186-5"><a href="#cb186-5" aria-hidden="true"></a>  <span class="kw">&amp;&amp;</span> <span class="fu">rm</span> -vf <span class="va">$i</span></span>
+<span id="cb186-6"><a href="#cb186-6" aria-hidden="true"></a><span class="kw">done</span></span></code></pre></div>
+<div class="sourceCode" id="cb187"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb187-1"><a href="#cb187-1" aria-hidden="true"></a><span class="fu">mv</span> usr/bin/logins usr/sbin/</span></code></pre></div>
 <h3 id="lobase">lobase</h3>
-<div class="sourceCode" id="cb179"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb179-1"><a href="#cb179-1" aria-hidden="true"></a><span class="fu">mkdir</span> -p <span class="dt">{s,}</span>bin usr/ccs/bin</span></code></pre></div>
-<div class="sourceCode" id="cb180"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb180-1"><a href="#cb180-1" aria-hidden="true"></a><span class="kw">for</span> <span class="ex">i</span> in usr/bin/<span class="dt">{cat,chmod,cp,date,dd,domainname,false,install,kill,ln{,dir},mkdir,mv,pwd,readlink,rm{,dir},sed,shar,stat,true,vis}</span><span class="kw">;</span> <span class="kw">do</span></span>
-<span id="cb180-2"><a href="#cb180-2" aria-hidden="true"></a>  <span class="fu">cp</span> -v <span class="va">$i</span> bin/<span class="va">$(</span><span class="fu">basename</span> <span class="va">$i)</span> <span class="kw">&amp;&amp;</span> <span class="fu">rm</span> -vf <span class="va">$i</span></span>
-<span id="cb180-3"><a href="#cb180-3" aria-hidden="true"></a><span class="kw">done</span></span></code></pre></div>
-<div class="sourceCode" id="cb181"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb181-1"><a href="#cb181-1" aria-hidden="true"></a><span class="kw">for</span> <span class="ex">i</span> in usr/bin/<span class="dt">{lorder,mkdep,unifdef}</span><span class="kw">;</span> <span class="kw">do</span></span>
-<span id="cb181-2"><a href="#cb181-2" aria-hidden="true"></a>  <span class="fu">cp</span> -v <span class="va">$i</span> usr/ccs/bin/<span class="va">$(</span><span class="fu">basename</span> <span class="va">$i)</span> <span class="kw">&amp;&amp;</span> <span class="fu">rm</span> -vf <span class="va">$i</span></span>
-<span id="cb181-3"><a href="#cb181-3" aria-hidden="true"></a><span class="kw">done</span></span></code></pre></div>
+<div class="sourceCode" id="cb188"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb188-1"><a href="#cb188-1" aria-hidden="true"></a><span class="fu">mkdir</span> -p <span class="dt">{s,}</span>bin usr/ccs/bin</span></code></pre></div>
+<div class="sourceCode" id="cb189"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb189-1"><a href="#cb189-1" aria-hidden="true"></a><span class="kw">for</span> <span class="ex">i</span> in usr/bin/<span class="dt">{cat,chmod,cp,date,dd,domainname,false,install,kill,ln{,dir},mkdir,mv,pwd,readlink,rm{,dir},sed,shar,stat,true,vis}</span><span class="kw">;</span> <span class="kw">do</span></span>
+<span id="cb189-2"><a href="#cb189-2" aria-hidden="true"></a>  <span class="fu">cp</span> -v <span class="va">$i</span> bin/<span class="va">$(</span><span class="fu">basename</span> <span class="va">$i)</span> <span class="kw">&amp;&amp;</span> <span class="fu">rm</span> -vf <span class="va">$i</span></span>
+<span id="cb189-3"><a href="#cb189-3" aria-hidden="true"></a><span class="kw">done</span></span></code></pre></div>
+<div class="sourceCode" id="cb190"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb190-1"><a href="#cb190-1" aria-hidden="true"></a><span class="kw">for</span> <span class="ex">i</span> in usr/bin/<span class="dt">{lorder,mkdep,unifdef}</span><span class="kw">;</span> <span class="kw">do</span></span>
+<span id="cb190-2"><a href="#cb190-2" aria-hidden="true"></a>  <span class="fu">cp</span> -v <span class="va">$i</span> usr/ccs/bin/<span class="va">$(</span><span class="fu">basename</span> <span class="va">$i)</span> <span class="kw">&amp;&amp;</span> <span class="fu">rm</span> -vf <span class="va">$i</span></span>
+<span id="cb190-3"><a href="#cb190-3" aria-hidden="true"></a><span class="kw">done</span></span></code></pre></div>
 <h1 id="faça-fuce-force-vá-não-chore-na-porta-solucionando-e-explicando-problemas"><em>“Faça, fuce, force, vá, não chore na porta…”</em>: Solucionando (e explicando) problemas</h1>
-<p>Essa seção é basicamente o “<em>troubleshooting</em>” da tabula: ela existe justamente para explicar problemas que você talvez enfrente durante a compilação do Copacabana (e que normalmente não são explicados no Linux from Scratch e nem no Musl-LFS, mas sim em <em>erratas</em> (ou, no caso do Musl-LFS do Derrick, nas “<em>issues</em>” — algumas que eu mesmo tive a honra de fazer e contribuir — as quais citarei diversas vezes tanto ao longo dessa seção quanto ao longo da tabula em si.</p>
+<p>Essa seção é basicamente o “<em>troubleshooting</em>” da tabula: ela existe justamente para explicar problemas que você talvez enfrente durante a compilação do Copacabana e que normalmente não são explicados no Linux from Scratch e nem no Musl-LFS, mas sim em erratas ou, no caso do Musl-LFS do Derrick, nas “<em>issues</em>” — algumas que eu mesmo tive a honra de fazer e contribuir — as quais citarei diversas vezes tanto ao longo dessa seção quanto ao longo da tabula em si.</p>
 <h2 id="meu-ld-na-segunda-parte-da-compilação-da-biblioteca-c-musl-no-sistema-base-não-está-retornando-o-resultado-esperado"><em>“Meu <code>ld</code> na segunda parte da compilação da biblioteca C musl no sistema-base não está retornando o resultado esperado”</em></h2>
-<p>Enquanto eu compilava o sistema-base do Copacabana no dia 22 de março de 2022, com intuito de já fazer o primeiro lançamento oficial, eu dei de cara com esse problema:</p>
+<p>Enquanto eu compilava o sistema-base do Copacabana no dia 22 de março de 2022, com intuito de já fazer o primeiro lançamento oficial, eu encontrei este problema:</p>
 <pre><code>SEARCH_DIR(&quot;=/tools/x86_64-pindoramaCOPACABANA-linux-musl/lib64&quot;)
 SEARCH_DIR(&quot;/tools/lib&quot;)
 SEARCH_DIR(&quot;=/tools/x86_64-pindoramaCOPACABANA-linux-musl/lib&quot;)</code></pre>
@@ -1453,7 +1526,7 @@ Caso contrário, venha comigo para a aventura de recompilar (parte d)a toolchain
 Para corrigir isso, apenas refaça a parte do novo binário para o linkeditor nas instruções para compilar as GNU Binutils para a toolchain, só não se esqueça de limpar o diretório antes com o <code>gmake -C ld/ clean</code>.</p>
 <p>Esse erro originalmente foi percebido pelo próprio Derrick no Musl-LFS, enquanto ele trabalhava na versão 10.0.0-RC1, e corrigido no <em>commit</em> <code>19e881cd880ecd6fc8a6711c1c9038c2f3221381</code> no dia 12 de dezembro de 2021.[12]</p>
 <h2 id="o-iproute2-simplesmente-não-compila-devolve-um-erro-sobreuma-declaração-estática-de-setns-seguindo-uma-declaração-não-estática"><em>“O IPRoute2 simplesmente não compila, devolve um erro sobre”uma declaração estática de <code>setns()</code> seguindo uma declaração não-estática&quot;”</em></h2>
-<p>Enquanto eu compilava o sistema-base do Copacabana em 17 de Fevereiro de 2022, já aproximadamente chegando ao fim do processo e da lista de pacotes, eu dei de cara com esse problema:</p>
+<p>Enquanto eu compilava o sistema-base do Copacabana em 17 de Fevereiro de 2022, já aproximadamente chegando ao fim do processo e da lista de pacotes, eu encontrei este problema:</p>
 <pre class="console"><code>copacabana_chroot% gmake
 sh configure /usr/include
 TC schedulers
@@ -1487,71 +1560,103 @@ from utils.c:41:
 | ^~~~~
 make[1]: *** [utils.o] Error 1
 make: *** [all] Error 2</code></pre>
-<p>Esse erro ocorre pois, como pode ser visto, o “sub-<em>script</em>” <code>configure</code> — este que é “chamado” pelo arquivo <code>Makefile</code> na linha 84 usando o interpretador <code>sh</code>, que em nossa toolchain seria o <code>dash</code> — falha em identificar se a biblioteca C instalada no sistema contém uma implementação (?) da chamada de sistema <code>setns()</code> — por meio de uma checagem por meio de um pequeno trecho de código em C que é gerado pela função <code>check_setns()</code> do <em>script</em>, essa que é definida nas linhas 185 até 203 —, essa que serve para “mover” processos — ou, como dito na página de manual, um fio de execução — de um <em>namespace</em> para outro, assim fazendo com que o iproute2 acabe usando sua própria implementação.</p>
+<p>Este erro ocorre pois, como pode ser visto, o “sub-<em>script</em>” <code>configure</code> — este que é “chamado” pelo arquivo <code>Makefile</code> na linha 84 usando o interpretador <code>sh</code>, que em nossa toolchain seria o <code>dash</code> — falha em identificar se a biblioteca C instalada no sistema contém uma implementação (?) da chamada de sistema <code>setns()</code> — por meio de uma checagem por meio de um pequeno trecho de código em C que é gerado pela função <code>check_setns()</code> do <em>script</em>, essa que é definida nas linhas 185 até 203 —, essa que serve para “mover” processos — ou, como dito na página de manual, um fio de execução — de um <em>namespace</em> para outro, assim fazendo com que o iproute2 acabe usando sua própria implementação.</p>
 <p><strong>Linhas 83 e 84, arquivo <code>Makefile</code>:</strong></p>
-<div class="sourceCode" id="cb184"><pre class="sourceCode makefile"><code class="sourceCode makefile"><span id="cb184-1"><a href="#cb184-1" aria-hidden="true"></a><span class="dv">config.mk:</span><span class="dt">   </span></span>
-<span id="cb184-2"><a href="#cb184-2" aria-hidden="true"></a>sh configure <span class="ch">$(</span><span class="dt">KERNEL_INCLUDE</span><span class="ch">)</span></span></code></pre></div>
+<div class="sourceCode" id="cb193"><pre class="sourceCode makefile"><code class="sourceCode makefile"><span id="cb193-1"><a href="#cb193-1" aria-hidden="true"></a><span class="dv">config.mk:</span><span class="dt">   </span></span>
+<span id="cb193-2"><a href="#cb193-2" aria-hidden="true"></a>sh configure <span class="ch">$(</span><span class="dt">KERNEL_INCLUDE</span><span class="ch">)</span></span></code></pre></div>
 <p><strong>Linhas 185 até 203, arquivo <code>configure</code>:</strong></p>
-<div class="sourceCode" id="cb185"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb185-1"><a href="#cb185-1" aria-hidden="true"></a><span class="fu">check_setns()</span></span>
-<span id="cb185-2"><a href="#cb185-2" aria-hidden="true"></a><span class="kw">{</span></span>
-<span id="cb185-3"><a href="#cb185-3" aria-hidden="true"></a>    <span class="fu">cat</span> <span class="op">&gt;</span><span class="va">$TMPDIR</span>/setnstest.c <span class="op">&lt;&lt;EOF</span></span>
-<span id="cb185-4"><a href="#cb185-4" aria-hidden="true"></a>#include &lt;sched.h&gt;</span>
-<span id="cb185-5"><a href="#cb185-5" aria-hidden="true"></a>int main(int argc, char **argv)</span>
-<span id="cb185-6"><a href="#cb185-6" aria-hidden="true"></a>{</span>
-<span id="cb185-7"><a href="#cb185-7" aria-hidden="true"></a>        (void)setns(0,0);</span>
-<span id="cb185-8"><a href="#cb185-8" aria-hidden="true"></a>        return 0;</span>
-<span id="cb185-9"><a href="#cb185-9" aria-hidden="true"></a>}</span>
-<span id="cb185-10"><a href="#cb185-10" aria-hidden="true"></a><span class="op">EOF</span></span>
-<span id="cb185-11"><a href="#cb185-11" aria-hidden="true"></a>    <span class="kw">if</span> <span class="va">$CC</span> <span class="ex">-I</span><span class="va">$INCLUDE</span> -o <span class="va">$TMPDIR</span>/setnstest <span class="va">$TMPDIR</span>/setnstest.c <span class="op">&gt;</span>/dev/null <span class="op">2&gt;&amp;1</span><span class="kw">;</span> <span class="kw">then</span></span>
-<span id="cb185-12"><a href="#cb185-12" aria-hidden="true"></a>        <span class="bu">echo</span> <span class="st">&quot;IP_CONFIG_SETNS:=y&quot;</span> <span class="op">&gt;&gt;</span><span class="va">$CONFIG</span></span>
-<span id="cb185-13"><a href="#cb185-13" aria-hidden="true"></a>        <span class="bu">echo</span> <span class="st">&quot;yes&quot;</span></span>
-<span id="cb185-14"><a href="#cb185-14" aria-hidden="true"></a>        <span class="bu">echo</span> <span class="st">&quot;CFLAGS += -DHAVE_SETNS&quot;</span> <span class="op">&gt;&gt;</span><span class="va">$CONFIG</span></span>
-<span id="cb185-15"><a href="#cb185-15" aria-hidden="true"></a>    <span class="kw">else</span></span>
-<span id="cb185-16"><a href="#cb185-16" aria-hidden="true"></a>        <span class="bu">echo</span> <span class="st">&quot;no&quot;</span></span>
-<span id="cb185-17"><a href="#cb185-17" aria-hidden="true"></a>    <span class="kw">fi</span></span>
-<span id="cb185-18"><a href="#cb185-18" aria-hidden="true"></a>    <span class="fu">rm</span> -f <span class="va">$TMPDIR</span>/setnstest.c <span class="va">$TMPDIR</span>/setnstest</span>
-<span id="cb185-19"><a href="#cb185-19" aria-hidden="true"></a><span class="kw">}</span></span></code></pre></div>
-<p>O grande problema está no ponto em que sim, a biblioteca C musl tem sim uma implementação da <code>setns()</code>, que acaba conflitando com a implementação do iproute2 e dando esse erro na compilação, como se a função <code>setns(int, int)</code> em si tivesse sido declarada duas vezes.<br />
+<div class="sourceCode" id="cb194"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb194-1"><a href="#cb194-1" aria-hidden="true"></a><span class="fu">check_setns()</span></span>
+<span id="cb194-2"><a href="#cb194-2" aria-hidden="true"></a><span class="kw">{</span></span>
+<span id="cb194-3"><a href="#cb194-3" aria-hidden="true"></a>    <span class="fu">cat</span> <span class="op">&gt;</span><span class="va">$TMPDIR</span>/setnstest.c <span class="op">&lt;&lt;EOF</span></span>
+<span id="cb194-4"><a href="#cb194-4" aria-hidden="true"></a>#include &lt;sched.h&gt;</span>
+<span id="cb194-5"><a href="#cb194-5" aria-hidden="true"></a>int main(int argc, char **argv)</span>
+<span id="cb194-6"><a href="#cb194-6" aria-hidden="true"></a>{</span>
+<span id="cb194-7"><a href="#cb194-7" aria-hidden="true"></a>        (void)setns(0,0);</span>
+<span id="cb194-8"><a href="#cb194-8" aria-hidden="true"></a>        return 0;</span>
+<span id="cb194-9"><a href="#cb194-9" aria-hidden="true"></a>}</span>
+<span id="cb194-10"><a href="#cb194-10" aria-hidden="true"></a><span class="op">EOF</span></span>
+<span id="cb194-11"><a href="#cb194-11" aria-hidden="true"></a>    <span class="kw">if</span> <span class="va">$CC</span> <span class="ex">-I</span><span class="va">$INCLUDE</span> -o <span class="va">$TMPDIR</span>/setnstest <span class="va">$TMPDIR</span>/setnstest.c <span class="op">&gt;</span>/dev/null <span class="op">2&gt;&amp;1</span><span class="kw">;</span> <span class="kw">then</span></span>
+<span id="cb194-12"><a href="#cb194-12" aria-hidden="true"></a>        <span class="bu">echo</span> <span class="st">&quot;IP_CONFIG_SETNS:=y&quot;</span> <span class="op">&gt;&gt;</span><span class="va">$CONFIG</span></span>
+<span id="cb194-13"><a href="#cb194-13" aria-hidden="true"></a>        <span class="bu">echo</span> <span class="st">&quot;yes&quot;</span></span>
+<span id="cb194-14"><a href="#cb194-14" aria-hidden="true"></a>        <span class="bu">echo</span> <span class="st">&quot;CFLAGS += -DHAVE_SETNS&quot;</span> <span class="op">&gt;&gt;</span><span class="va">$CONFIG</span></span>
+<span id="cb194-15"><a href="#cb194-15" aria-hidden="true"></a>    <span class="kw">else</span></span>
+<span id="cb194-16"><a href="#cb194-16" aria-hidden="true"></a>        <span class="bu">echo</span> <span class="st">&quot;no&quot;</span></span>
+<span id="cb194-17"><a href="#cb194-17" aria-hidden="true"></a>    <span class="kw">fi</span></span>
+<span id="cb194-18"><a href="#cb194-18" aria-hidden="true"></a>    <span class="fu">rm</span> -f <span class="va">$TMPDIR</span>/setnstest.c <span class="va">$TMPDIR</span>/setnstest</span>
+<span id="cb194-19"><a href="#cb194-19" aria-hidden="true"></a><span class="kw">}</span></span></code></pre></div>
+<p>O grande problema está no ponto em que sim, a biblioteca C musl tem sim uma implementação da <code>setns()</code>, que acaba conflitando com a implementação do iproute2 e dando este erro na compilação, como se a função <code>setns(int, int)</code> em si tivesse sido declarada duas vezes.<br />
 Além de ter sido experenciado por mim mesmo — e, provavelmente qualquer um que usou a toolchain de 25 de janeiro de 2022 —, é também documentado num <em>commit</em> feito em 16 de Julho de 2011 por Eric W. Biederman na árvore de desenvolvimento principal do iproute2, implementando originalmente a função <code>check_setns()</code> no <em>script</em> <code>configure</code>, a fim de resolver um outro erro — extremamente similar ao nosso, mas que foi provocado por outros fatores — que havia sido experienciado por Dan McGee, um desenvolvedor de software de Chicago que trabalhou no projeto Arch Linux como desenvolvedor do gerenciador de pacotes Pacman e mantenedor do <em>website</em> do projeto[], enquanto ele empacotava o iproute2[].</p>
 <p>Infelizmente, por uma questão de tempo e paciência, eu acabei por não conseguir traçar a causa real desse erro.<br />
 Entretanto, eu pude criar algumas teorias, e citarei duas delas aqui, da mais provável para a menos provável:</p>
 <ul>
-<li>Má-configuração do arquivo specs do GCC no reajuste, somado ao linkeditor quebrado — o que poderia ser questionado pois, mesmo assim, o pré-processador ainda sim encontra o cabeçalho <code>sched.h</code> contendo a implementação do <code>setns(int, int)</code>, então de alguma forma os caminhos para o diretório de cabeçalhos estão configurados corretamente, todavia essa hipótese ainda é a mais plausível;</li>
+<li>Falha na instalação dos cabeçalhos do núcleo Linux por minha parte enquanto mantenedor/desenvolvedor único da distribuição — como eu mesmo propus no comentário que fiz na minha própria <em>issue</em> no Musl-LFS;</li>
+<li>Má-configuração do arquivo specs do GCC no reajuste, somado ao linkeditor quebrado — o que poderia ser questionado pois, mesmo assim, o pré-processador ainda sim encontra o cabeçalho <code>sched.h</code> contendo a implementação do <code>setns(int, int)</code>, então de alguma forma os caminhos para o diretório de cabeçalhos estão configurados corretamente;</li>
 <li>Falha na execução do <em>script</em> em si, por falta de ferramentas presentes na toolchain ou por essas não seguirem padrões atuais do POSIX.</li>
 </ul>
-<p>De qualquer forma, eu consegui corrigir esse erro utilizando a toolchain mais recente, de 1 de Julho de 2022; agora o <em>script</em> de configuração do iproute2 (e de outros programas) finalmente consegue identificar a presença de funções na biblioteca C.</p>
+<p>De qualquer forma, eu consegui corrigir este erro utilizando a toolchain mais recente, de 1 de Julho de 2022; agora o <em>script</em> de configuração do iproute2 (e de outros programas) finalmente consegue identificar a presença de funções na biblioteca C.</p>
 <h3 id="solução-secundária">Solução secundária</h3>
 <p>Caso você esteja usando a toolchain antiga, algo que não recomendo pois você pode acabar quebrando outros programas, a “solução” para esse erro seria (re)forçar a presença da <code>setns()</code>, editando o <em>script</em> <code>configure</code> e removendo (ou simplesmente comentando) a parte da função <code>check_setns()</code> que, de fato, faz a checagem, como pode ser visto abaixo:</p>
-<div class="sourceCode" id="cb186"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb186-1"><a href="#cb186-1" aria-hidden="true"></a><span class="fu">check_setns()</span></span>
-<span id="cb186-2"><a href="#cb186-2" aria-hidden="true"></a><span class="kw">{</span></span>
-<span id="cb186-3"><a href="#cb186-3" aria-hidden="true"></a>        <span class="bu">echo</span> <span class="st">&quot;IP_CONFIG_SETNS:=y&quot;</span> <span class="op">&gt;&gt;</span><span class="va">$CONFIG</span></span>
-<span id="cb186-4"><a href="#cb186-4" aria-hidden="true"></a>        <span class="bu">echo</span> <span class="st">&quot;yes (forced)&quot;</span></span>
-<span id="cb186-5"><a href="#cb186-5" aria-hidden="true"></a>        <span class="bu">echo</span> <span class="st">&quot;CFLAGS += -DHAVE_SETNS&quot;</span> <span class="op">&gt;&gt;</span><span class="va">$CONFIG</span></span>
-<span id="cb186-6"><a href="#cb186-6" aria-hidden="true"></a><span class="kw">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb195"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb195-1"><a href="#cb195-1" aria-hidden="true"></a><span class="fu">check_setns()</span></span>
+<span id="cb195-2"><a href="#cb195-2" aria-hidden="true"></a><span class="kw">{</span></span>
+<span id="cb195-3"><a href="#cb195-3" aria-hidden="true"></a>        <span class="bu">echo</span> <span class="st">&quot;IP_CONFIG_SETNS:=y&quot;</span> <span class="op">&gt;&gt;</span><span class="va">$CONFIG</span></span>
+<span id="cb195-4"><a href="#cb195-4" aria-hidden="true"></a>        <span class="bu">echo</span> <span class="st">&quot;yes (forced)&quot;</span></span>
+<span id="cb195-5"><a href="#cb195-5" aria-hidden="true"></a>        <span class="bu">echo</span> <span class="st">&quot;CFLAGS += -DHAVE_SETNS&quot;</span> <span class="op">&gt;&gt;</span><span class="va">$CONFIG</span></span>
+<span id="cb195-6"><a href="#cb195-6" aria-hidden="true"></a><span class="kw">}</span></span></code></pre></div>
 <p>Em um formato de <em>diff</em>, a diferença seria essa:</p>
-<div class="sourceCode" id="cb187"><pre class="sourceCode diff"><code class="sourceCode diff"><span id="cb187-1"><a href="#cb187-1" aria-hidden="true"></a><span class="dt">187,195d186</span></span>
-<span id="cb187-2"><a href="#cb187-2" aria-hidden="true"></a><span class="st">&lt;     cat &gt;$TMPDIR/setnstest.c &lt;&lt;EOF</span></span>
-<span id="cb187-3"><a href="#cb187-3" aria-hidden="true"></a><span class="st">&lt; #include &lt;sched.h&gt;</span></span>
-<span id="cb187-4"><a href="#cb187-4" aria-hidden="true"></a><span class="st">&lt; int main(int argc, char **argv)</span></span>
-<span id="cb187-5"><a href="#cb187-5" aria-hidden="true"></a><span class="st">&lt; {</span></span>
-<span id="cb187-6"><a href="#cb187-6" aria-hidden="true"></a><span class="st">&lt;       (void)setns(0,0);</span></span>
-<span id="cb187-7"><a href="#cb187-7" aria-hidden="true"></a><span class="st">&lt;       return 0;</span></span>
-<span id="cb187-8"><a href="#cb187-8" aria-hidden="true"></a><span class="st">&lt; }</span></span>
-<span id="cb187-9"><a href="#cb187-9" aria-hidden="true"></a><span class="st">&lt; EOF</span></span>
-<span id="cb187-10"><a href="#cb187-10" aria-hidden="true"></a><span class="st">&lt;     if $CC -I$INCLUDE -o $TMPDIR/setnstest $TMPDIR/setnstest.c &gt;/dev/null 2&gt;&amp;1; then</span></span>
-<span id="cb187-11"><a href="#cb187-11" aria-hidden="true"></a><span class="dt">197c188</span></span>
-<span id="cb187-12"><a href="#cb187-12" aria-hidden="true"></a><span class="st">&lt;       echo &quot;yes&quot;</span></span>
-<span id="cb187-13"><a href="#cb187-13" aria-hidden="true"></a><span class="kw">---</span></span>
-<span id="cb187-14"><a href="#cb187-14" aria-hidden="true"></a><span class="va">&gt;       echo &quot;yes (forced)&quot;</span></span>
-<span id="cb187-15"><a href="#cb187-15" aria-hidden="true"></a><span class="dt">199,202d189</span></span>
-<span id="cb187-16"><a href="#cb187-16" aria-hidden="true"></a><span class="st">&lt;     else</span></span>
-<span id="cb187-17"><a href="#cb187-17" aria-hidden="true"></a><span class="st">&lt;       echo &quot;no&quot;</span></span>
-<span id="cb187-18"><a href="#cb187-18" aria-hidden="true"></a><span class="st">&lt;     fi</span></span>
-<span id="cb187-19"><a href="#cb187-19" aria-hidden="true"></a><span class="st">&lt;     rm -f $TMPDIR/setnstest.c $TMPDIR/setnstest</span></span></code></pre></div>
-<p>Esse erro originalmente foi percebido por mim, Luiz Antônio, enquanto eu trabalhava na versão 0.42 (codinome “El Mariachi”) do Copacabana Linux, e então reportado na <em>issue</em> <code>#73</code> no repositório do Musl-LFS no Microsoft GitHub no dia 17 de Fevereiro de 2022[XY].<br />
+<div class="sourceCode" id="cb196"><pre class="sourceCode diff"><code class="sourceCode diff"><span id="cb196-1"><a href="#cb196-1" aria-hidden="true"></a><span class="dt">187,195d186</span></span>
+<span id="cb196-2"><a href="#cb196-2" aria-hidden="true"></a><span class="st">&lt;     cat &gt;$TMPDIR/setnstest.c &lt;&lt;EOF</span></span>
+<span id="cb196-3"><a href="#cb196-3" aria-hidden="true"></a><span class="st">&lt; #include &lt;sched.h&gt;</span></span>
+<span id="cb196-4"><a href="#cb196-4" aria-hidden="true"></a><span class="st">&lt; int main(int argc, char **argv)</span></span>
+<span id="cb196-5"><a href="#cb196-5" aria-hidden="true"></a><span class="st">&lt; {</span></span>
+<span id="cb196-6"><a href="#cb196-6" aria-hidden="true"></a><span class="st">&lt;       (void)setns(0,0);</span></span>
+<span id="cb196-7"><a href="#cb196-7" aria-hidden="true"></a><span class="st">&lt;       return 0;</span></span>
+<span id="cb196-8"><a href="#cb196-8" aria-hidden="true"></a><span class="st">&lt; }</span></span>
+<span id="cb196-9"><a href="#cb196-9" aria-hidden="true"></a><span class="st">&lt; EOF</span></span>
+<span id="cb196-10"><a href="#cb196-10" aria-hidden="true"></a><span class="st">&lt;     if $CC -I$INCLUDE -o $TMPDIR/setnstest $TMPDIR/setnstest.c &gt;/dev/null 2&gt;&amp;1; then</span></span>
+<span id="cb196-11"><a href="#cb196-11" aria-hidden="true"></a><span class="dt">197c188</span></span>
+<span id="cb196-12"><a href="#cb196-12" aria-hidden="true"></a><span class="st">&lt;       echo &quot;yes&quot;</span></span>
+<span id="cb196-13"><a href="#cb196-13" aria-hidden="true"></a><span class="kw">---</span></span>
+<span id="cb196-14"><a href="#cb196-14" aria-hidden="true"></a><span class="va">&gt;       echo &quot;yes (forced)&quot;</span></span>
+<span id="cb196-15"><a href="#cb196-15" aria-hidden="true"></a><span class="dt">199,202d189</span></span>
+<span id="cb196-16"><a href="#cb196-16" aria-hidden="true"></a><span class="st">&lt;     else</span></span>
+<span id="cb196-17"><a href="#cb196-17" aria-hidden="true"></a><span class="st">&lt;       echo &quot;no&quot;</span></span>
+<span id="cb196-18"><a href="#cb196-18" aria-hidden="true"></a><span class="st">&lt;     fi</span></span>
+<span id="cb196-19"><a href="#cb196-19" aria-hidden="true"></a><span class="st">&lt;     rm -f $TMPDIR/setnstest.c $TMPDIR/setnstest</span></span></code></pre></div>
+<p>Este erro originalmente foi percebido por mim, Luiz Antônio, enquanto eu trabalhava na versão 0.42 (codinome “El Mariachi”) do Copacabana Linux, e então reportado na <em>issue</em> <code>#73</code> no repositório do Musl-LFS no Microsoft GitHub no dia 17 de Fevereiro de 2022[XY].<br />
 Foi, por fim, consertado (ou ao menos, explicado?) no dia 2 de junho de 2022 por mim mesmo na resposta <code>1145479714</code> à mesma <em>issue</em>[XX].</p>
+<h2 id="o-gnu-m4-simplesmente-não-compila-no-sistema-base-devolve-uma-série-de-erros-sobrereferência-não-definida-a-error"><em>“O GNU m4 simplesmente não compila no sistema-base, devolve uma série de erros sobre”referência não-definida a `<code>error</code>’&quot;”</em></h2>
+<p>Enquanto eu compilava o sistema-base do Copacabana em 31 de Agosto de 2022, na parte onde monta-se as ferramentas de desenvolvimento, eu encontrei este problema:</p>
+<pre class="console"><code>  CCLD     m4
+/tools/lib/gcc/x86_64-pindoramaCOPACABANA-linux-musl/10.3.1/../../../../x86_64-pindoramaCOPACABANA-linux-musl/bin/ld: ../lib/libm4.a(clean-temp.o): in function `create_temp_dir&#39;:
+/usr/src/cmp/m4-1.4.19/lib/clean-temp.c:234: undefined reference to `error&#39;
+/tools/lib/gcc/x86_64-pindoramaCOPACABANA-linux-musl/10.3.1/../../../../x86_64-pindoramaCOPACABANA-linux-musl/bin/ld: /usr/src/cmp/m4-1.4.19/lib/clean-temp.c:249: undefined reference to `error&#39;
+/tools/lib/gcc/x86_64-pindoramaCOPACABANA-linux-musl/10.3.1/../../../../x86_64-pindoramaCOPACABANA-linux-musl/bin/ld: ../lib/libm4.a(clean-temp.o): in function `do_rmdir&#39;:
+/usr/src/cmp/m4-1.4.19/lib/clean-temp.c:370: undefined reference to `error&#39;
+/tools/lib/gcc/x86_64-pindoramaCOPACABANA-linux-musl/10.3.1/../../../../x86_64-pindoramaCOPACABANA-linux-musl/bin/ld: /usr/src/cmp/m4-1.4.19/lib/clean-temp.c:370: undefined reference to `error&#39;
+/tools/lib/gcc/x86_64-pindoramaCOPACABANA-linux-musl/10.3.1/../../../../x86_64-pindoramaCOPACABANA-linux-musl/bin/ld: /usr/src/cmp/m4-1.4.19/lib/clean-temp.c:370: undefined reference to `error&#39;
+/tools/lib/gcc/x86_64-pindoramaCOPACABANA-linux-musl/10.3.1/../../../../x86_64-pindoramaCOPACABANA-linux-musl/bin/ld: ../lib/libm4.a(execute.o):/usr/src/cmp/m4-1.4.19/lib/execute.c:347: more undefined references to `error&#39; follow
+/tools/lib/gcc/x86_64-pindoramaCOPACABANA-linux-musl/10.3.1/../../../../x86_64-pindoramaCOPACABANA-linux-musl/bin/ld: ../lib/libm4.a(verror.o): in function `verror_at_line&#39;:
+/usr/src/cmp/m4-1.4.19/lib/verror.c:68: undefined reference to `error_at_line&#39;
+/tools/lib/gcc/x86_64-pindoramaCOPACABANA-linux-musl/10.3.1/../../../../x86_64-pindoramaCOPACABANA-linux-musl/bin/ld: /usr/src/cmp/m4-1.4.19/lib/verror.c:70: undefined reference to `error&#39;
+/tools/lib/gcc/x86_64-pindoramaCOPACABANA-linux-musl/10.3.1/../../../../x86_64-pindoramaCOPACABANA-linux-musl/bin/ld: /usr/src/cmp/m4-1.4.19/lib/verror.c:76: undefined reference to `error&#39;
+/tools/lib/gcc/x86_64-pindoramaCOPACABANA-linux-musl/10.3.1/../../../../x86_64-pindoramaCOPACABANA-linux-musl/bin/ld: ../lib/libm4.a(xalloc-die.o): in function `xalloc_die&#39;:
+/usr/src/cmp/m4-1.4.19/lib/xalloc-die.c:34: undefined reference to `error&#39;
+/tools/lib/gcc/x86_64-pindoramaCOPACABANA-linux-musl/10.3.1/../../../../x86_64-pindoramaCOPACABANA-linux-musl/bin/ld: ../lib/libm4.a(xprintf.o): in function `xvprintf&#39;:
+/usr/src/cmp/m4-1.4.19/lib/xprintf.c:50: undefined reference to `error&#39;
+/tools/lib/gcc/x86_64-pindoramaCOPACABANA-linux-musl/10.3.1/../../../../x86_64-pindoramaCOPACABANA-linux-musl/bin/ld: ../lib/libm4.a(xprintf.o): in function `xvfprintf&#39;:
+/usr/src/cmp/m4-1.4.19/lib/xprintf.c:76: undefined reference to `error&#39;
+/tools/lib/gcc/x86_64-pindoramaCOPACABANA-linux-musl/10.3.1/../../../../x86_64-pindoramaCOPACABANA-linux-musl/bin/ld: ../lib/libm4.a(xprintf.o):/usr/src/cmp/m4-1.4.19/lib/xprintf.c:76: more undefined references to `error&#39; follow
+collect2: error: ld returned 1 exit status
+gmake[2]: *** [m4] Error 1
+gmake[2]: Leaving directory `/usr/src/cmp/m4-1.4.19/src&#39;
+gmake[1]: *** [all-recursive] Error 1
+gmake[1]: Leaving directory `/usr/src/cmp/m4-1.4.19&#39;
+gmake: *** [all] Error 2</code></pre>
+<p>Este erro ocorre pois, como pode ser visto, não há uma definição das funções <code>error</code> e <code>error_at_line</code>. Em outras palavras: elas aparentemente não existem na nossa biblioteca C e o <em>script</em> <code>configure</code> não estava ciente acerca disso, pois nós de fato temos um cabeçalho <code>error.h</code>, mas que não tem as devidas definições.<br />
+Para corrigir isso, devemos — assim como no Flex, no estágio da toolchain intermediária — forçar o GNU auto*conf a não usar o <code>sys/cdefs.h</code> do sistema-base e a usar a função <code>error_at_line()</code> e <code>error()</code> da Gnulib, ao configurarmos as variáveis de cachê <code>ac_cv_lib_error_at_line</code> e <code>ac_cv_header_sys_cdefs_h</code> como “<code>no</code>”, assim adicionando uma definição das ditas.</p>
+<p>Este erro foi primeiramente descoberto, pelo que parece, por Daniel Kolesa, um desenvolvedor do projeto Void Linux, enquanto ele trabalhava no arquivo para compilar o GNU m4 pelo <code>xbps-src</code> presente no repositório void-packages, e então corrigido por ele mesmo no <em>commit</em> <code>4b6c115f475ec8d14047f01b3b4204d4293f59e8</code> em 9 de Junho de 2021[ZW]; entretanto ele não deu nenhuma explicação sobre o erro em si, apenas uma descrição genérica. Já, no Copacabana, esse bug foi descoberto por mim, Luiz Antônio, enquanto eu trabalhava na versão 0.42 (codinome “El Mariachi”) do Copacabana Linux, e então reportado na <em>issue</em> <code>#81</code> no repositório do Musl-LFS no Microsoft GitHub no dia 30 de Agosto de 2022[ZZ]. E então foi, por fim, consertado no dia 31 de Agosto de 2022 por mim mesmo na resposta <code>1233496080</code> à mesma <em>issue</em>[WW], assim como também já foi corrigido na documentação em si (ou seja, esse erro está aqui para fins históricos, pois não irá aparecer para você).</p>
 <p>Nota[12]: https://github.com/dslm4515/Musl-LFS/commit/19e881cd880ecd6fc8a6711c1c9038c2f3221381i</p>
-<p>Nota[]: https://archlinux.org/people/developer-fellows/#dan Nota[]: https://patchwork.ozlabs.org/project/netdev/patch/m1mxgfkr3g.fsf@fess.ebiederm.org/ Nota[XY]: https://github.com/dslm4515/Musl-LFS/issues/73 Nota[XX]: https://github.com/dslm4515/Musl-LFS/issues/73#issuecomment-1145479714</p>
+<p>Nota[]: https://archlinux.org/people/developer-fellows/#dan Nota[]: https://patchwork.ozlabs.org/project/netdev/patch/m1mxgfkr3g.fsf@fess.ebiederm.org/ Nota[XY]: https://github.com/dslm4515/Musl-LFS/issues/73 Nota[XX]: https://github.com/dslm4515/Musl-LFS/issues/73#issuecomment-1145479714 Nota[ZW]: https://github.com/void-linux/void-packages/commit/4b6c115f475ec8d14047f01b3b4204d4293f59e8 Nota[ZZ]: https://github.com/dslm4515/Musl-LFS/issues/81 Nota[WW]: https://github.com/dslm4515/Musl-LFS/issues/81#issuecomment-1233496080</p>
 <section class="footnotes" role="doc-endnotes">
 <hr />
 <ol>
@@ -1652,18 +1757,22 @@ Murray Hill, Nova Jérsei, E.U.A.: Bell Telephone Laboratories, Inc., Novembro d
 <li id="fn81" role="doc-endnote"><p>https://www.linuxfromscratch.org/lfs/view/9.1/chapter06/glibc.html#conf-glibc<a href="#fnref81" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 <li id="fn82" role="doc-endnote"><p>https://git.alpinelinux.org/aports/commit/main/tzdata/APKBUILD?id=f67da5868d0420d8d466dffbc3655ce1239a1f3b<a href="#fnref82" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 <li id="fn83" role="doc-endnote"><p>https://en.wikipedia.org/wiki/Leap_second https://museum.seiko.co.jp/en/knowledge/story_01<a href="#fnref83" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn84" role="doc-endnote"><p>https://github.com/dslm4515/Musl-LFS/commit/5ee55e85ecfba776951ba8d0904d49577a56e3c9<a href="#fnref84" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn85" role="doc-endnote"><p>https://github.com/void-linux/void-packages/blob/eb68f14525fe488bc769f2229e82d111ae3c309d/srcpkgs/binutils/template#L34-L48<a href="#fnref85" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn86" role="doc-endnote"><p>https://git.alpinelinux.org/aports/tree/main/binutils/APKBUILD#n100<a href="#fnref86" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn87" role="doc-endnote"><p>https://gcc.gnu.org/onlinedocs/gcc/Code-Gen-Options.html<a href="#fnref87" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section>
 <footer>
 	<div>
-		<p> ©2022 Luiz Antônio Rangel et Pindorama</p>
+		<p> ©2022 Luiz Antônio Rangel, João Pedro Vieira et Pindorama</p>
 		<p>This document was built at  using
 			<a href="https://github.com/takusuman/traite-de-la-tabula.git">
 			Traité de la <i>tabula</i>
 			</a>.
 		</p>
 		<p>Traité was ran using pandoc 2.9.2.1 and ksh Version AJM 93u+m/1.0.0-beta.2 2021-12-17
-		at S145, which runs: Linux 5.15.0-46-generic.
+		at S145, which runs: Linux 5.15.0-48-generic.
 		</p>
 	</div>
 </footer>
