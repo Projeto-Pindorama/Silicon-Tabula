@@ -3354,7 +3354,12 @@ indicado, originalmente surgiu no Void Linux, mais especificamente em 12 de
 Junho de 2012, tendo sido implementado pelo Juan RP (``xtraeme``) no *commit*
 ``eb68f14525fe488bc769f2229e82d111ae3c309d``[^85]. O Alpine Linux faz o mesmo
 tipo de proteção, todavia usando apenas a opção ``--with-pic`` no *script*
-``configure``.[^86]
+``configure``[^86], entretanto, estaremos fazendo o processo de recompilar as
+bibliotecas manualmente pois assim temos um maior controle do que realmente vai
+ser compilado com a tal opção, além de também estarmos tendo que "esconder" a
+libbfd do linkeditor, a fim de evitar que outras bibliotecas ou programas façam
+uso de sua API não-estável --- palavras da explicação feita no *commit* do
+``xtraeme``, diga-se de passagem.
 
 Sobre a opção ``-fPIC``, pois bem: o parâmetro ``-f`` significa, quase que num
 "tratado" entre compiladores C atuais e não apenas no GCC, "*flag*" que, na
@@ -3815,6 +3820,7 @@ fins históricos, pois não irá aparecer para você).
 [^84]: https://github.com/dslm4515/Musl-LFS/commit/5ee55e85ecfba776951ba8d0904d49577a56e3c9
 [^85]: https://github.com/void-linux/void-packages/blob/eb68f14525fe488bc769f2229e82d111ae3c309d/srcpkgs/binutils/template#L34-L48
 [^86]: https://git.alpinelinux.org/aports/tree/main/binutils/APKBUILD#n100
+[^87]: https://gcc.gnu.org/onlinedocs/gcc/Code-Gen-Options.html
 
 Nota[12]: https://github.com/dslm4515/Musl-LFS/commit/19e881cd880ecd6fc8a6711c1c9038c2f3221381i
 
