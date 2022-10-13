@@ -3345,9 +3345,9 @@ gmake -j$(grep -c 'processor' /proc/cpuinfo)
 ```
 
 Após compilarmos a parte principal do pacote, segundo o Musl-LFS, nós deveríamos
-compilar as bibliotecas libbfd, libiberty, libopcodes utilizando a opção
-``-fPIC`` nas ``CFLAGS``. Isso foi posto no Musl-LFS no dia 23 de Agosto de
-2020 pelo Derrick (``dslm4515``), no *commit*
+compilar as bibliotecas ``libbfd``, ``libiberty``, ``libopcodes`` utilizando a
+opção ``-fPIC`` nas ``CFLAGS``. Isso foi posto no Musl-LFS no dia 23 de Agosto
+de 2020 pelo Derrick (``dslm4515``), no *commit*
 ``5ee55e85ecfba776951ba8d0904d49577a56e3c9``, cuja descrição é "Atualizadas as
 binutils para [a versão] 2.35 com proteção do Void Linux."[^84]; entretanto, como
 indicado, originalmente surgiu no Void Linux, mais especificamente em 12 de
@@ -3357,9 +3357,9 @@ tipo de proteção, todavia usando apenas a opção ``--with-pic`` no *script*
 ``configure``[^86], entretanto, estaremos fazendo o processo de recompilar as
 bibliotecas manualmente pois assim temos um maior controle do que realmente vai
 ser compilado com a tal opção, além de também estarmos tendo que "esconder" a
-libbfd do linkeditor, a fim de evitar que outras bibliotecas ou programas façam
-uso de sua API não-estável --- palavras da explicação feita no *commit* do
-``xtraeme``, diga-se de passagem.
+``libbfd`` do linkeditor, a fim de evitar que outras bibliotecas ou programas
+façam uso de sua API não-estável --- palavras da explicação feita no *commit*
+do ``xtraeme``, diga-se de passagem.
 
 Sobre a opção ``-fPIC``, pois bem: o parâmetro ``-f`` significa, quase que num
 "tratado" entre compiladores C atuais e não apenas no GCC, "*flag*" que, na
@@ -3371,8 +3371,17 @@ anteriormente)[^87]; já "PIC" é um acrônimo para Código Independente de Posi
 difícil de explicar do que o que é uma "*flag*", mas vamos lá.
 
 ```sh
+cp -r libiberty libiberty-pic \
+&& gmake -C libiberty-pic clean \
+&& CFLAGS="$CFLAGS -fPIC" gmake -C libiberty_pic
 
+cp -r bfd bfd-pic \
+&& gmake -C bfd-pic clean \
+&& gmake CFLAGS="$CFLAGS -fPIC -fvisibility=hidden" -C bfd-pic
 
+cp -r opcodes opcodes-pic \
+&& gmake -C opcodes-pic clean \
+&& gmake CFLAGS="$CFLAGS -fPIC" -C opcodes-pic
 ```
 
 
