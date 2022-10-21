@@ -539,7 +539,7 @@ cp ld/ld-new /tools/bin
 
 O GNU Compiler Collection é um pacote que contém compiladores para diversas
 linguagens. Inicialmente, surgiu como uma reescrita feita pelo Projeto GNU do
-compilador C, conhecido como ``cc``(1) no UNIX da AT&T --- e, por conta disso,
+compilador C, conhecido como ``cc``(1) no UNIX® da AT&T --- e, por conta disso,
 ganhou o nome de "gcc", pois os comandos (re)escritos pelo GNU usavam o prefixo
 "g". Logo "**``g``**``cc``" seria a versão GNU do comando ``cc``(1).  
 Estaremos compilando os compiladores C e C++ do pacote, o que é o suficiente,
@@ -3341,7 +3341,7 @@ citei anteriormente, o linkeditor.
 #### 2º: Compile e instale no sistema
 
 ```sh
-gmake -j$(grep -c 'processor' /proc/cpuinfo)
+tooldir=/usr/ccs gmake -j$(grep -c 'processor' /proc/cpuinfo)
 ```
 
 Após compilarmos a parte principal do pacote, segundo o Musl-LFS, nós deveríamos
@@ -3366,24 +3366,57 @@ Sobre a opção ``-fPIC``, pois bem: o parâmetro ``-f`` significa, quase que nu
 falta de uma boa tradução (e não, não é "bandeira"), funciona para dar instruções
 adicionais ao compilador sobre como gerar o código de montagem, além do que já
 lhe é passado pelo arquivo ``specs`` (o que já dissertamos sobre
-anteriormente)[^87]; já "PIC" é um acrônimo para Código Independente de Posição
-(ou "*Position Independent Code*", em inglês), é um conceito um bocado mais
-difícil de explicar do que o que é uma "*flag*", mas vamos lá.
+anteriormente)[^87]. Já "PIC" é um acrônimo para Código Independente de Posição
+(ou "*Position Independent Code*", em inglês), e  
 
 ```sh
 cp -r libiberty libiberty-pic \
 && gmake -C libiberty-pic clean \
-&& CFLAGS="$CFLAGS -fPIC" gmake -C libiberty_pic
+&& CFLAGS="$CFLAGS -fPIC" gmake -C libiberty-pic
 
-cp -r bfd bfd-pic \
-&& gmake -C bfd-pic clean \
-&& gmake CFLAGS="$CFLAGS -fPIC -fvisibility=hidden" -C bfd-pic
+cp -r bfd bfd.orig \
+&& gmake -C bfd clean \
+&& CFLAGS="$CFLAGS -fPIC -fvisibility=hidden" gmake -C bfd \
+&& mv bfd bfd-pic \
+&& mv bfd.orig bfd
 
 cp -r opcodes opcodes-pic \
 && gmake -C opcodes-pic clean \
-&& gmake CFLAGS="$CFLAGS -fPIC" -C opcodes-pic
+&& CFLAGS="$CFLAGS -fPIC" gmake -C opcodes-pic
 ```
 
+Então, instale tanto o pacote principal quanto as bibliotecas que recompilamos
+--- com uma ressalva de que, segundo o manual do Musl-LFS, não estaremos
+deixando as bibliotecas bdf e opcodes serem linkeditadas simbolicamente, pois
+não são partes da ABI estável, logo estaremos fazendo com que elas sejam
+linkeditadas apenas estaticamente:
+
+```sh
+MAKEINFO="$(which true)" gmake install \
+&& for header in 'include/demangle.h' 'include/libiberty.h'; do
+	install -m 644 $header /usr/ccs/include
+done \
+&& for lib in 'bfd-pic/libbfd.a' 'libiberty-pic/libiberty.a' \
+	'opcodes-pic/libopcodes.a'; do
+	install -m 644 $lib /usr/ccs/lib
+done \
+&& for so in lib{bfd,opcodes}.so; do
+	echo "INPUT ( /usr/ccs/lib/${so%.so}.a -lbfd )" > "/usr/ccs/lib/$so"
+done
+```
+
+E, por fim, remova os diretórios do GNU info e de páginas de manual de
+ferramentas que apenas são necessárias --- ou, como dito no próprio manual
+das Binutils, úteis --- nos sistemas Novell NetWare e Microsoft Windows, logo
+não são compiladas em plataformas UNIX-compatíveis por padrão; entretanto, as
+páginas de manual ainda estão lá presentes.
+
+```sh
+for manual in {dlltool,nlmconv,windres,windmc}.1; do
+	rm -vf /usr/ccs/share/man/man1/$manual
+done \
+	&& rm -rvf /usr/ccs/share/info
+```
 
 ### GNU Multiple-Precision Arithmetic Library (ou simplesmente GMP)
 
@@ -3717,6 +3750,92 @@ de 2022 por mim mesmo na resposta ``1233496080`` à mesma *issue*[WW], assim com
 também já foi corrigido na documentação em si (ou seja, esse erro está aqui para
 fins históricos, pois não irá aparecer para você).
 
+## *"Não consigo recompilar a ``libbfd`` com a opção ``-fPIC``, aparentemente o diretório-raiz das Binutils deve ser limpo antes."*
+
+Enquanto eu compilava o estágio de ferramentas de compilação para o Copacabana
+nos últimos dias, eu encontrei esse erro quando tentei recompilar a biblioteca
+``bfd`` com a opção ``-fPIC``:
+
+```console
+copacabana_chroot%; cp -r bfd bfd-pic \
+> && gmake -C bfd-pic clean \
+> && CFLAGS="$CFLAGS -fPIC -fvisibility=hidden" gmake -C bfd-pic
+gmake: Entering directory `/usr/src/cmp/binutils-2.36.1/bfd-pic'
+/bin/sh ./config.status --recheck
+running CONFIG_SHELL=/bin/sh /bin/sh /usr/src/cmp/binutils-2.36.1/bfd/configure --srcdir=.././bfd --cache-file=./config.cache --with-gnu-as --with-gnu-ld --prefix=/usr/ccs --enable-ld --enable-gold=default --enable-64-bit-bfd --enable-relro --enable-lto --enable-threads --enable-deterministic-archives --enable-default-execstack=no --enable-targets=x86_64-pep --enable-default-hash-style=sysv --disable-multilib --disable-gprofng --disable-werror --disable-nls --with-mmap --with-system-zlib --program-transform-name=s,y,y, --disable-option-checking --build=x86_64-pc-linux-musl --host=x86_64-pc-linux-musl --target=x86_64-pc-linux-musl build_alias=x86_64-pc-linux-musl host_alias=x86_64-pc-linux-musl target_alias=x86_64-pc-linux-musl CC=gcc CFLAGS=-O2 -march=x86-64 -mcpu=znver2 -pipe LDFLAGS=  --no-create --no-recursion
+configure: loading cache ./config.cache
+checking build system type... (cached) x86_64-pc-linux-musl
+checking host system type... (cached) x86_64-pc-linux-musl
+checking target system type... (cached) x86_64-pc-linux-musl
+checking for x86_64-pc-linux-musl-gcc... (cached) gcc
+checking whether the C compiler works... yes
+checking for C compiler default output file name... a.out
+checking for suffix of executables... 
+checking whether we are cross compiling... no
+checking for suffix of object files... (cached) o
+checking whether we are using the GNU C compiler... (cached) yes
+checking whether gcc accepts -g... (cached) yes
+checking for gcc option to accept ISO C89... (cached) none needed
+checking whether gcc understands -c and -o together... (cached) yes
+checking for library containing strerror... (cached) none required
+checking for a BSD-compatible install... /bin/install -c
+checking whether build environment is sane... yes
+checking for a thread-safe mkdir -p... .././bfd/../install-sh -c -d
+checking for gawk... (cached) nawk
+checking whether make sets $(MAKE)... yes
+checking for style of include used by make... GNU
+checking whether make supports nested variables... (cached) yes
+configure: error: source directory already configured; run "make distclean" there first
+gmake: *** [config.status] Error 1
+gmake: Leaving directory `/usr/src/cmp/binutils-2.36.1/bfd-pic'
+copacabana_chroot%; 
+```
+
+Se você já passou por essa etapa da compilação, possivelmente conseguiu perceber
+o erro lendo o registro do *script* com mais calma: ele está invocando um
+"*sub-script*" de configuração que está se referindo ao diretório original da
+``libbfd``, não à nossa cópia, e que vai também invocar outros *scripts* (como,
+por exemplo, o ``install-sh``) que irão se referenciar ao diretório original,
+não ao nosso. A prova disso é que, quando executamos o ``gmake`` e interpretamos
+o Makefile, ele estará, desde o príncípio, executando o "*sub-script*" de dentro
+do diretório original --- este que, originalmente, não fora limpo, por isso o
+erro ocorre. 
+```sh
+CONFIG_SHELL=/bin/sh /bin/sh /usr/src/cmp/binutils-2.36.1/bfd/configure --srcdir=.././bfd --cache-file=./config.cache --with-gnu-as --with-gnu-ld --prefix=/usr/ccs --enable-ld --enable-gold=default --enable-64-bit-bfd --enable-relro --enable-lto --enable-threads --enable-deterministic-archives --enable-default-execstack=no --enable-targets=x86_64-pep --enable-default-hash-style=sysv --disable-multilib --disable-gprofng --disable-werror --disable-nls --with-mmap --with-system-zlib --program-transform-name=s,y,y, --disable-option-checking --build=x86_64-pc-linux-musl --host=x86_64-pc-linux-musl --target=x86_64-pc-linux-musl build_alias=x86_64-pc-linux-musl host_alias=x86_64-pc-linux-musl target_alias=x86_64-pc-linux-musl CC=gcc CFLAGS=-O2 -march=x86-64 -mcpu=znver2 -pipe LDFLAGS=  --no-create --no-recursion
+```
+
+A solução para isso é relativamente simples: ao invés de se copiar o diretório
+``bfd`` e fazer as alterações na cópia, faz-se uma cópia de segurança do
+diretório original e, então, se faz os procedimentos no diretório ``bfd/``, não
+em sua cópia.
+ 
+Na prática, originalmente, pelo *script* de compilação do Void Linux e pelo
+Musl-LFS, faríamos isso:
+
+```sh
+cp -r bfd bfd-pic
+gmake -C bfd-pic clean
+CFLAGS="$CFLAGS -fPIC -fvisibility=hidden" gmake -C bfd-pic
+```
+
+Atualmente, faremos isso:
+
+```sh
+cp -r bfd bfd.orig \
+&& gmake -C bfd clean \
+&& CFLAGS="$CFLAGS -fPIC -fvisibility=hidden" gmake -C bfd \
+&& mv bfd bfd-pic \
+&& mv bfd.orig bfd
+```
+
+Esse erro foi primeiramente descoberto por mim, Luiz Antônio, enquanto eu
+trabalhava mais um dia no sistema. Entretanto, o CentOS, em seu repositório
+git oficial de *scripts* para a montagem de pacotes, parece ter implementado uma
+solução __muito__ similar a esse erro, entretanto não fazendo uma cópia de
+segurança antes, mas sim fazendo as alterações diretamente nos diretórios das
+bibliotecas[^AB].  
+Assim como o erro anterior, esse erro também já foi consertado na documentação
+em si, então ele está sendo citado apenas para fins históricos.
 
 [^1]: https://webcache.googleusercontent.com/search?q=cache:Ls6QkZbwhsIJ:https://stat.ethz.ch/R-manual/R-devel/library/utils/help/untar.html+&cd=9&hl=pt-BR&ct=clnk&gl=br#:~:text=OpenBSD
 [^2]: https://www.linuxfromscratch.org/museum/lfs-museum/8.4/LFS-BOOK-8.4-HTML/chapter05/gcc-pass2.html 
@@ -3840,3 +3959,4 @@ Nota[XX]: https://github.com/dslm4515/Musl-LFS/issues/73#issuecomment-1145479714
 Nota[ZW]: https://github.com/void-linux/void-packages/commit/4b6c115f475ec8d14047f01b3b4204d4293f59e8
 Nota[ZZ]: https://github.com/dslm4515/Musl-LFS/issues/81
 Nota[WW]: https://github.com/dslm4515/Musl-LFS/issues/81#issuecomment-1233496080
+Nota[AB]: https://git.centos.org/rpms/binutils/blob/c8s/f/SPECS/binutils.spec#_1090-1103
