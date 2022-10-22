@@ -3399,10 +3399,9 @@ done \
 && for lib in 'bfd-pic/libbfd.a' 'libiberty-pic/libiberty.a' \
 	'opcodes-pic/libopcodes.a'; do
 	install -m 644 $lib /usr/ccs/lib
-done \
-&& for so in lib{bfd,opcodes}.so; do
-	echo "INPUT ( /usr/ccs/lib/${so%.so}.a -lbfd )" > "/usr/ccs/lib/$so"
 done
+echo 'INPUT ( /usr/ccs/lib/libbfd.a -liberty -lz )' > /usr/ccs/lib/libbfd.so
+echo 'INPUT ( /usr/ccs/lib/libopcodes.a -lbfd )' > /usr/ccs/lib/libopcodes.so
 ```
 
 E, por fim, remova os diretórios do GNU info e de páginas de manual de
@@ -3431,6 +3430,7 @@ done \
 
 #### 2º: Compile e instale no sistema
 
+### GNU Multiple Precision Complex Library (ou simplesmente MPC)
 
 ### GNU ncurses
 
