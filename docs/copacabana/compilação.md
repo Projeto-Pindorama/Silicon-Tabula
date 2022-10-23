@@ -3367,7 +3367,26 @@ falta de uma boa tradução (e não, não é "bandeira"), funciona para dar inst
 adicionais ao compilador sobre como gerar o código de montagem, além do que já
 lhe é passado pelo arquivo ``specs`` (o que já dissertamos sobre
 anteriormente)[^87]. Já "PIC" é um acrônimo para Código Independente de Posição
-(ou "*Position Independent Code*", em inglês), e  
+(ou "*Position Independent Code*", em inglês), o que, basicamente, é gerar
+código que possa ser carregado independentemente da posição na memória e que não
+irá se alterar em comportamento.[^88] O mecanismo para isso é, teoricamente, simples:
+os dados no programa em si são posicionados em posições estáticas da memória e
+seus endereços são localizados numa espécie de "indíce", que então pode ser
+"consultado" quando necessário, que será quando algo no código precisar de algum
+daqueles dados e que está presente no começo do arquivo inicial. Quando esses
+dados forem referenciados, eles não serão diretamente referenciados por seus
+endereços reais, mas sim como uma referência a uma seção específica desse
+"índice" --- a exemplo de comparação, imagine que estejamos falando de um
+capítulo de um livro; ao invés de se dizer "Leia a página 229 e faça um resumo",
+diria-se "Leia a página do capítulo 10 e faça um resumo", não é o melhor exemplo
+(muito menos, a melhor explicação) de longe, mas creio que sirva para explicar.[^89]  
+Isso será utilizado nessas três bibliotecas em específico pois, quando o PIC é
+utilizado em código, ele não só faz com que as bibliotecas possam ser, de fato,
+linkeditadas e utilizadas dinamicamente --- pois, assim, pelo código poder ser
+carregado em qualquer posição da memória, poderia-se rodar várias instâncias do
+código da biblioteca sem haver "interferência"/sobreescrita das mesmas seções da
+memória ---, elas se tornam mais seguras pois as instruções não poderiam ser
+diretamente sobreescritas por um ataque em um endereço de memória em específico.
 
 ```sh
 cp -r libiberty libiberty-pic \
@@ -3949,6 +3968,8 @@ em si, então ele está sendo citado apenas para fins históricos.
 [^85]: https://github.com/void-linux/void-packages/blob/eb68f14525fe488bc769f2229e82d111ae3c309d/srcpkgs/binutils/template#L34-L48
 [^86]: https://git.alpinelinux.org/aports/tree/main/binutils/APKBUILD#n100
 [^87]: https://gcc.gnu.org/onlinedocs/gcc/Code-Gen-Options.html
+[^88]: http://web.archive.org/web/20180801014616/http://www.iecc.com/linker/linker08.html
+[^89]: http://web.archive.org/web/20180824182713/https://www.iecc.com/linker/linker10.html
 
 Nota[12]: https://github.com/dslm4515/Musl-LFS/commit/19e881cd880ecd6fc8a6711c1c9038c2f3221381i
 
