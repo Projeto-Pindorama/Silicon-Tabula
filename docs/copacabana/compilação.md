@@ -3752,12 +3752,13 @@ Neste caso, ao contrário dos anteriores, estaremos não lendo apenas as linhas
 começadas em ``crt[1in]``, mas sim contendo ``crt[1in]`` no meio. Isso porque,
 como pode se ver na chamada do *script* ``configure``, ao utilizarmos o *switch*
 ``--enable-default-pie``, nós compilamos o GCC com a opção de montar os programas
-finais como Executáveis Independentes de Posição (ou PIE/"*Position Independent
-Executables*", em inglês, que é literalmente o mesmo conceito de PIC, porém
-aplicado a executáveis), logo, utilizar-se-á o arquivo ``Scrt1.o``, que é,
+finais como Executáveis Independentes de Posição (ou "*Position Independent
+Executables*" (PIE), em inglês, que é literalmente o mesmo conceito de PIC,
+porém aplicado a executáveis), logo, utilizar-se-á o arquivo ``Scrt1.o``, que é,
 digamos, "feito" para Executáveis Independentes de Posição, ao invés do
-``crt1.o``. Caso queira fazer um teste em paralelo para testar se o ``crt1.o``
-também funciona, apenas recompile o programa com a opção ``-no-pie``.
+``crt1.o``.  
+Caso queira fazer um teste em paralelo para testar se o ``crt1.o`` também
+funciona, apenas recompile o programa com a opção ``-no-pie``.
  
 ```sh
 grep 'attempt to open /usr/lib.*/.*crt[1in].*succeeded' sanity.log
