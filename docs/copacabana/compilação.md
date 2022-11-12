@@ -32,7 +32,7 @@ o Bourne shell, a fim de matar tempo.
 ## Os ingredientes
 
 Essa seção contém uma lista de dependências necessárias para montar a toolchain
-intermediária e o sistema-final, tanto aquelas que devem estar presentes na
+intermediária e o sistema-base, tanto aquelas que devem estar presentes na
 máquina-hospedeira quanto instruções para baixar o código-fonte necessário. 
 
 ### Pacotes que devem estar instalados na máquina hospedeira
@@ -227,9 +227,9 @@ Mitzune.
 Compilá-la pode, de primeira, parecer complexo --- falo isso como quem compilou,
 apagou e recompilou a mesma diversas vezes em várias máquinas diferentes desde
 coisa de Março de 2021 e só foi entender o processo de fato recentemente ---
-mas, comparando com o sistema final, é relativamente simples, mas ainda extenso
+mas, comparando com o sistema-base, é relativamente simples, mas ainda extenso
 pois a quantidade de pacotes compilados aqui é quase a mesma que vamos ter que
-compilar no sistema final. Pela simplicidade técnica dessa etapa, essa parte vai
+compilar no sistema-base. Pela simplicidade técnica dessa etapa, essa parte vai
 ser bem menos tangenciada quanto a próxima.  
 Por uma questão de nostalgia, essa é minha parte favorita de compilar.
 Ok, vamos lá; isso vai tomar umas duas horas na melhor das hipóteses, então é
@@ -282,9 +282,9 @@ Filesystem              kbytes       used      avail capacity Mounted on
 ```
 
 Entretanto, eu recomendaria que você simplesmente use uma ligação simbólica
-simples (até porque a toolchain não passa de um mero *hack* perto do sistema
-final) e, assim, você evitaria possíveis dores de cabeça --- como, por exemplo,
-esquecer de montar o diretório de ``$COPA/tools`` em ``/tools``.
+simples (até porque a toolchain não passa de um mero *hack* perto do
+sistema-base) e, assim, você evitaria possíveis dores de cabeça --- como,
+por exemplo, esquecer de montar o diretório de ``$COPA/tools`` em ``/tools``.
 
 ***
 
@@ -584,7 +584,7 @@ um elegante e (talvez não-tão) compacto (mas belo) arranjo.
 ***
 **Nota**: Antes de rodar esse trecho de código, lembre-se que estou considerando
 que você ainda não está dentro do diretório do GCC, caso já esteja dentro do
-diretório do GCC, apenas mude ``-d ./gcc-10.3.1_git20210423/`` por ``-d .``.
+diretório do GCC, apenas mude ``-d ./gcc-10.3.1_git20210423/`` por ``-d ./``.
 
 ***
 
@@ -1111,7 +1111,7 @@ para que o Heirloom compile.
 **Nota**: Assim como quando aplicamos os *patches* no GCC, lembre-se de que
 estou considerando que você ainda não está dentro do diretório-alvo --- no
 nosso caso, do Heirloom ---, caso já esteja dentro do diretório do Heirloom,
-apenas mude ``-d ./heirloom-070715/`` por ``-d .``; enfim, coisa padrão.  
+apenas mude ``-d ./heirloom-070715/`` por ``-d ./``; enfim, coisa padrão.  
 
 ***
 
@@ -1259,7 +1259,7 @@ precisamos para a toolchain.
 Heirloom, lembre-se de que eu estou considerando que você ainda não esteja dentro
 do diretório-alvo --- no nosso caso atual, do lobase ---, então caso você já esteja
 dentro do diretório do lobase em si, apenas mude
-``-d ./stripped-lobase-20180406-original/`` por ``-d .``; enfim, o mesmo de
+``-d ./stripped-lobase-20180406-original/`` por ``-d ./``; enfim, o mesmo de
 antes.  
 
 ***
@@ -1790,7 +1790,7 @@ estática.
 --- tanto nessa parte da toolchain quanto, principalmente, no sistema-base ---
 é de que eu estou considerando que você ainda não esteja dentro do
 diretório-alvo do nosso *patch*.  
-Nesse caso, apenas mude ``-d ./star-1.6`` por ``-d .``.  
+Nesse caso, apenas mude ``-d ./star-1.6`` por ``-d ./``.  
 É mais um procedimento padrão que vale a pena se relembrar, pois se você
 esquecer disso agora, vai acabar com um ``tar``(1) quebrado que aponta para a
 biblioteca C da máquina hospedeira --- no caso do Ubuntu 22.04, que estou
@@ -2288,7 +2288,7 @@ comando ``gmake mrproper``.
 **Nota**: Assim como na seção anterior, da toolchain intermediária, eu também
 estou considerando que você ainda não está dentro do diretório-alvo do nosso
 *patch*.  
-Nesse caso, apenas mude ``-d ./linux-5.10.105/`` por ``-d .``.  
+Nesse caso, apenas mude ``-d ./linux-5.10.105/`` por ``-d ./``.  
 
 ***
 
@@ -2341,7 +2341,7 @@ apenas queremos os cabeçalhos, podemos simplesmente apagá-los de nosso
 **Nota**: Assim como na seção anterior, da toolchain intermediária, eu também
 estou considerando que você ainda não está dentro do diretório-alvo do nosso
 *patch*.  
-Nesse caso, apenas mude ``-d ./musl-1.2.1/`` por ``-d .``.  
+Nesse caso, apenas mude ``-d ./musl-1.2.1/`` por ``-d ./``.  
 
 ***
 
@@ -2780,10 +2780,11 @@ arquivo specs como "mapa" --- está procurando pelos cabeçalhos (inclusos
 pela diretiva ``#include``) nos diretórios corretos.  
 
 ```sh
-nawk -vpattern="#include <...> search starts here:" \
-    '$0 ~ pattern { print $0; getline; print $0; }' sanity.log
+nawk '/^#include <...> search starts here:/{flag=1;next}/^End of search list./{flag=0}flag' sanity.log
 ```
+
 O esperado é que a saída seja essa:
+
 ```console
 #include <...> search starts here:
  /usr/include
@@ -2791,35 +2792,6 @@ O esperado é que a saída seja essa:
 
 Se foi isso, o nosso ajuste foi feito corretamente e podemos continuar
 tranquilamente.
-
-### musl-extras
-
-O musl-extras contém algumas ferramentas que são necessárias para o
-sistema-base, como o ``getconf``(1).  
-
-#### 1º: Compile e instale no sistema
-
-Para compilar todos os binários --- com exceção ao ``ldconfig``, que aqui é um
-*script* shell ---, estaremos utilizando apenas um laço de repetição \```for``' e
-então instalando-os utilizando a ferramenta ``install``(1), que já utilizamos
-antes inclusive.
-
-```sh
-for cmd in cmd/*.c; do
-	cmd_binary_name="$(basename $cmd .c)"
-	gcc -static "$cmd" -o "$cmd_binary_name" \
-	&& install -m755 "$cmd_binary_name" /usr/bin \
-	&& rm -v "$cmd_binary_name"
-done \
-&& install -m755 cmd/ldconfig /sbin
-```
-
-***
-**Nota para compilações futuras**: Eu deveria escrever um Makefile para tudo,
-assim não teríamos o trabalho de compilar e instalar no sistema-base
-manualmente.   
-
-***
 
 ### Korn Shell
 
@@ -3436,20 +3408,490 @@ done \
 	&& rm -rvf /usr/ccs/share/info
 ```
 
-### GNU Multiple-Precision Arithmetic Library (ou simplesmente GMP)
+### Shadow (ferramentas para administrar usuários e grupos)
+
+**Nota**: Nesse momento, não estaremos compilando o Shadow com suporte ao
+OpemPAM de primeira, pois além de não ser muito claro, tanto pelo Musl-LFS
+quanto pelo manual do Linux from Scratch, se podemos compilar o OpemPAM
+nesse estágio, compilá-lo posteriormente requiriria recompilar o Shadow também
+para que tivesse suporte. Logo, por hora, estaremos deixando o PAM de lado.
+
+#### 1º: Aplique os *patches*
+
+Primeiramente, aplique o *patch* que corrige o Shadow tanto para começar a criar
+usuários do UID 1000 quanto aplica a estrutura de diretórios do Copacabana.
+
+```sh
+patch -p1 -d ./shadow-4.8.1/ < \
+	/usr/src/copacabana/patches/shadow-4.8.1/shadow-4.8.1_copacabana_defaults.patch
+```
+
+#### 2º: Rode o *script* ``configure``
+
+```sh
+LIBS='-lutmps' \
+./configure --sysconfdir=/etc \
+            --enable-utmpx \
+            --with-group-name-max-length=32
+```
+
+#### 3º: Compile e instale no sistema
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install \
+	&& mv /usr/bin/passwd /bin
+```
+
+### GNU Compiler Collection (GCC)
+
+***
+**Nota**: Nessa etapa, ao contrário das anteriores, iremos trocar entre
+diretórios de outros pacotes antes de compilarmos, de forma propriamente
+dita, o GCC, a fim de realizarmos pouco a pouco os procedimentos. 
+A troca em si será clarificada a seguir.
+
+***
+
+#### 1º: Bibliotecas extras (GMP, MPFR, MPC e ISL)
+
+Como dito na compilação do GCC para a toolchain intermediária, o GCC depende
+nessas bibliotecas para efetuar operações envolvendo cálculo de números
+complexos, e precisão aritmética. Mais especificamente, essas bibliotecas são
+utilizadas no processo de otimização de código feito pelo GCC, onde ele
+substitui/efetua previamente as operações aritméticas (normalmente efetuadas
+pela chamada de funções) por valores constantes, assim não se haverá a
+necessidade de, a todo momento que o valor for pedido, a CPU executar a função
+quando pode apenas pegar o valor constante.[^90] Essas três bibliotecas precisam
+ser instaladas pois uma depende da outra, tanto é que a MPC na realidade é
+considerada uma extensão para a MPFR para lidar com números complexos[^91],
+essa que é baseada na GMP[^92], porém adicionando "suporte", digamos nesses
+termos, a arredondamento com menor margem de erro.[^93] A fim de otimizar os
+valores sem perder precisão, o GCC faz uso da MPFR e da MPC, porém ainda depende
+da GMP.  
+Explicados os porquês desses pacotes estarem a nos seguir desde a toolchain
+intermediária, vamos direto à sua compilação.  
+
+Primeiramente, vale lembrar que não estaremos operando de dentro do diretório do
+GCC, mas sim compilando cada biblioteca independentemente e separadamente, como
+um diretório separado.  
+Estarei citando biblioteca por biblioteca aqui sem criar, de fato, um sub-título
+dedicado, então leia com cuidado.  
+
+**GNU Multiple-Precision Arithmetic Library:**  
+
+Primeiramente, rode o *script* ``configure``, como habitual:
+
+```sh
+./configure --prefix=/usr    \
+            --enable-cxx     \
+            --docdir=/usr/share/doc/$(basename $(pwd))
+```
+
+Após a configuração, compile e instale:
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
+**GNU Multiple Precision Floating-Point Reliable Library:**  
+
+Primeiramente, rode o *script* ``configure``, como habitual:
+
+```sh
+./configure --prefix=/usr    \
+            --enable-thread-safe     \
+            --docdir=/usr/share/doc/$(basename $(pwd))
+```
+
+Após a configuração, compile e instale:
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
+**GNU Multiple Precision Complex Library:**  
+
+Primeiramente, rode o *script* ``configure``, como habitual:
+
+```sh
+./configure --prefix=/usr    \
+            --docdir=/usr/share/doc/$(basename $(pwd))
+```
+
+Após a configuração, compile e instale:
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
+**Integer Set Library:**  
+
+ISL é uma sigla para "Biblioteca [para] Conjuntos Inteiros" --- em inglês,
+"*Integer Set Library*" ---, e, segundo sua documentação, é uma biblioteca usada
+para lidar com conjuntos, com operações como união, intersecção e afins. Ela
+também é utilizada para otimizações no GCC.  
+Após compilar as três bibliotecas e instalá-las no sistema como pacotes normais,
+entre no diretório do GCC e extraia o pacote do ISL dentro da raiz do
+diretório --- assim como fizemos com as bibliotecas GMP, MPFR e MPC no GCC da
+toolchain intermediária. Não compile, nem ao menos mexa no diretório do ISL após
+extrair, pois o *script* ``configure`` do GCC já o fará.  
+ 
+***
+**Nota**: Assim como citado anteriormente na parte da aplicação de *patches*,
+eu ainda estou considerando que você ainda não esteja dentro do diretório do
+GCC; caso já esteja, apenas mude ``-C ./gcc-10.3.1_git20210423/`` por ``-C ./``.
+
+***
+
+```sh
+xz -cd /usr/src/pkgs/isl-0.24.tar.xz | tar -xvf - -C./gcc-10.3.1_git20210424/ \
+&& mv ./gcc-10.3.1_git20210424/isl{-0.24,}
+```
+
+#### 2º: Aplique os *patches* do Alpine Linux
+
+Os *patches* para o GCC do sistema-base ainda são os mesmos que usamos na
+toolchain intermediária, ou seja, você pode usar o mesmo arranjo (e o mesmo
+laço) que utilizamos antes. Não estarei repetindo aquele bloco de código nessa
+parte a fim de não inflar o tamanho do manual.
+
+#### 3º: Rode o *script* ``configure``
+
+Antes de configurarmos o código-fonte, devemos indicar que, no caso de um
+sistema de 64-bits, estaremos utilizando apenas o diretóiro ``/lib``, não o
+``/lib64`` --- por mais que, na prática, os dois estejam ligados por meio de um
+*bind mount*.
+
+```sh
+cp -v gcc/config/i386/t-linux64{,.orig} \
+&& sed '/m64=/s/lib64/lib/' < gcc/config/i386/t-linux64.orig \
+	> gcc/config/i386/t-linux64
+``` 
+
+Essa linha do sed faz o seguinte:
+
+* ``/m64=/``: Busca pela linha contendo o padrão ``m64=``, que indica o
+  diretório para bibliotecas de 64-bits e que faz parte do valor da variável
+``MULTILIB_OSDIRNAMES``, essa sim que indica os diretórios para as bibliotecas
+no caso do GCC ser compilado com suporte ao *multilib* --- que é, em um breve
+resumo, ter duas versões de bibliotecas, tanto 64 quanto 32-bits, no sistema, a
+fim de poder se compilar ou utilizar binários de 32-bits numa máquina de 64
+(porém não vie-versa);
+* ``s/lib64/lib/``: Substitui o padrão ``lib64`` por ``lib`` apenas uma vez
+  quando encontrado (nota-se que não há o ``g`` ao final, indicando que as
+mudanças não serão globais).
+
+```sh
+mkdir build \
+&& cd build \
+&& libat_cv_have_ifunc=no \
+SED=sed ../configure --prefix=/usr/ccs	\
+	--build='x86_64-linux-musl'	\
+	--with-arch='x86-64'	\
+	--with-pkgversion="Pindorama Copacabana $(uname -m), build $(date +%d%m%y)" \
+	--enable-checking=release	\
+	--with-linker-hash-style='sysv'	\
+	--enable-linker-build-id	\
+	--enable-lto	\
+	--enable-plugins	\
+	--enable-languages=c,c++,fortran	\
+	--enable-clocale=generic	\
+	--enable-__cxa_atexit	\
+	--enable-threads=posix	\
+	--enable-tls	\
+	--enable-default-pie	\
+	--enable-default-ssp	\
+	--enable-libstdcxx-time	\
+	--with-isl	\
+	--enable-cloog-backend	\
+	--with-system-zlib	\
+	--disable-bootstrap	\
+	--disable-multilib	\
+	--disable-symvers	\
+	--disable-nls	\
+	--disable-libsanitizer	\
+	--disable-libssp	\
+	--disable-libmpx	\
+	--disable-libmudflap	\
+	--disable-sjlj-exceptions \
+	--disable-libstdcxx-pch	\
+	--disable-fixed-point	\
+	--disable-werror
+```
+
+***
+**Nota**: Estaremos forçando o GNU auto\*conf a pré-configurar (antes mesmo do
+*script* ``configure`` testar de fato esses valores) a variável de cachê
+"``libat_cv_have_ifunc``" como "``no``", assim fazendo com que a biblioteca
+libatomic do GCC não use a função ``ifunc()``[^94], pois essa não é suportada em
+nenhuma outra biblioteca a não ser versões mais atuais da biblioteca C GNU[^95].  
+A função ``ifunc()`` é uma abreviação para "*indirect function*" (em tradução
+literal, "função indireta"), que permite que um programador possa criar várias
+implementações de uma mesma função e chamá-las indiretamente (daí que vem o nome
+"função indireta") por meio de outra (geralmente por um identificador genérico)
+no tempo de execução[^96]. Um ótimo exemplo de como essa função é aplicada é na
+biblioteca C GNU, onde existem diversas implementações específicas para
+processadores de diferentes capacidades de funções que requerem o melhor
+desempenho possível numa determinada operação --- como a ``strcpy()``, por
+exemplo[^97]. A função ``ifunc()`` não é suportada pela musl propositalmente,
+pois, segundo o próprio Rich Felker, em uma mensagem na lista de discussões da
+musl na Openwall em 10 de Novembro de 2014, essa função e os métodos utilizados
+por ela no carregador de bibliotecas dinâmicas "quebram", digamos assim,
+diversas restrições impostas pela implementação de uma biblioteca, logo, uma
+implementação dessa função poderia, além de ser frágil, ir contra a ideia de se
+ter uma implementação de qualidade de uma biblioteca C[^98].  
+Todavia, mesmo essa função não existindo, eu tentei compilar o GCC antes sem
+passar a definição da variável de cachê para o ``configure`` e ele compilou sem
+problemas na prática. E se você estiver se perguntando, sim, gastei umas 4 horas
+de vida compilando o GCC com apenas um nó de execução pelo ``gmake`` em busca de
+algum erro. 
+
+***
+
+#### 4º: Compile e instale no sistema
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
+Por fim, refaça as ligações simbólicas antes ligadas na toolchain intermediária
+para o diretório ``/usr/ccs/lib``:
+
+```sh
+for i in libgcc_s.so libgcc_s.so.1 libstdc++.a libstdc++.so \
+	libstdc++.so.6; do
+	[ -L "/usr/lib/$i" ] && rm -v "/usr/lib/$i" \
+	&& ln -s "/usr/ccs/lib/$i" "/usr/lib/$i"
+done
+```
+
+***
+**Nota**: Caso você esteja empacotando o Copacabana para outra arquitetura,
+lembre-se de criar um pacote separado para as bibliotecas de tempo de execução
+do GCC, pois vários programas estão e/ou serão linkeditados nessas bibliotecas
+e as usam e/ou irão usá-las futuramente.
+
+***
+
+Então, também faça as ligações para permitir que seja possível montar novos
+programas com Otimização a Tempo de Linkedição ("*Link Time Otimization*", ou
+LTO em inglês):
+
+```sh
+ln -s "/usr/ccs/libexec/gcc/$(gcc -dumpmachine)/10.3.1/liblto_plugin.so" \
+	 /usr/ccs/lib/bfd-plugins/liblto_plugin.so
+```
+
+#### 5º: Prova-real do compilador
+
+Por fim, testemos o compilador. Essa parte é semelhante à prova-real dos ajustes
+que fizemos anteriormente, mas difere substancialmente de tal.  
+
+Primeiro, rodemos os testes do GCC por meio do alvo ``check`` do Makefile.
+
+```sh
+gmake -k check
+```
+
+Após os testes "oficiais", digamos assim, vamos criar um arquivo com código em C
+que, só pra contrariar as "provas-reais" anteriores, vai ser um mero clone do comando
+``false``(1), afinal, queremos apenas testar se o programa irá compilar e linkeditar
+nos conformes.
+
+```sh
+printf 'int main(void) {\n  return 1;\n}\n' > true.c
+```
+
+O nosso clone do comando ``false``(1) formatado:
+
+```console
+cat false.c
+```  
+```c
+int main(void) {
+  return 1;
+}
+```
+
+Então vamos compilá-lo, com a opção de verbose tanto para o compilador
+(``-v``) quanto para o linkeditor em si (``-Wl,--verbose``), a fim de,
+novamente, termos uma saída completa de como o compilador novo está operando.  
+Estamos explicitamente indicando que queremos usar o linkeditor original,
+baseado na biblioteca BFD do GNU, por meio da opção ``-fuse-ld=bfd``, pois as
+informações que desejamos são disponibilizadas por ele apenas, não pelo
+``gold``.
+
+```console
+gcc -o false false.c -v -Wl,--verbose  -fuse-ld=bfd > sanity.log 2>&1
+```
+
+Agora, com o binário em mãos, podemos utilizar novamente a ferramenta
+``readelf`` e, assim, checarmos se o interpretador "chamado" (no caso, como disse
+anteriormente, o carregador de bibliotecas dinâmicas, o ``ldd`` que, na prática,
+é o mesmo binário que a biblioteca C em si) é o do sistema-base em si, assim
+como no primeiro ajuste que fizemos assim que compilamos a biblioteca C musl
+para o sistema-base. 
+
+```sh
+readelf -l ./false | grep 'Requesting program interpreter'
+```
+
+O resultado deve ser o mesmo que tivemos no primeiro ajuste, sendo, no caso de
+uma máquina de 64-bits, ``/lib/ld-musl-x86_64.so.1``, assim indicando que os
+nossos compilador e linkeditor novos estão funcionando corretamente e que, então,
+não quebramos nada no caminho.
+
+Logo em seguida, também devemos checar se os objetos C.R.T. também estão sendo
+encontrados e linkeditados corretamente.  
+Neste caso, ao contrário dos anteriores, estaremos não lendo apenas as linhas
+começadas em ``crt[1in]``, mas sim contendo ``crt[1in]`` no meio. Isso porque,
+como pode se ver na chamada do *script* ``configure``, ao utilizarmos o *switch*
+``--enable-default-pie``, nós compilamos o GCC com a opção de montar os programas
+finais como Executáveis Independentes de Posição (ou PIE/"*Position Independent
+Executables*", em inglês, que é literalmente o mesmo conceito de PIC, porém
+aplicado a executáveis), logo, utilizar-se-á o arquivo ``Scrt1.o``, que é,
+digamos, "feito" para Executáveis Independentes de Posição, ao invés do
+``crt1.o``. Caso queira fazer um teste em paralelo para testar se o ``crt1.o``
+também funciona, apenas recompile o programa com a opção ``-no-pie``.
+ 
+```sh
+grep 'attempt to open /usr/lib.*/.*crt[1in].*succeeded' sanity.log
+```
+
+A saída deve ser essa:
+
+```
+attempt to open /usr/lib/../lib/Scrt1.o succeeded
+attempt to open /usr/lib/../lib/crti.o succeeded
+attempt to open /usr/lib/../lib/crtn.o succeeded
+```
+
+Para finalizar os testes relacionados com o processo de linkedição, agora apenas
+devemos checar se o linkeditor ainda está buscando as bibliotecas nos diretórios
+corretos.
+
+```sh
+grep 'SEARCH_DIR.*' sanity.log | sed 's/[[:space:]]/\n/g'
+```
+
+A saída, então, deve ser essa, ou pelo menos similar:
+
+```
+SEARCH_DIR("/usr/ccs/x86_64-pc-linux-musl/lib64");
+SEARCH_DIR("/usr/ccs/lib64");
+SEARCH_DIR("/usr/local/lib64");
+SEARCH_DIR("/lib64");
+SEARCH_DIR("/usr/lib64");
+SEARCH_DIR("/usr/ccs/x86_64-pc-linux-musl/lib");
+SEARCH_DIR("/usr/ccs/lib");
+SEARCH_DIR("/usr/local/lib");
+SEARCH_DIR("/lib");
+SEARCH_DIR("/usr/lib");
+```
+
+Por fim, devemos checar se o pré-processador está buscando pelos cabeçalhos nos
+diretórios corretos.
+
+```sh
+nawk '/^#include <...> search starts here:/{flag=1;next}/^End of search list./{flag=0}flag' sanity.log 
+```
+
+A saída deve ser essa:
+
+```
+/usr/ccs/include
+/usr/include
+/usr/ccs/lib/gcc/x86_64-linux-musl/10.3.1/include
+```
+
+Se os resultados foram esses esperados, podemos continuar tranquilamente.
+
+### musl-extras
+
+O musl-extras contém algumas ferramentas que são necessárias para o
+sistema-base, como o ``getconf``(1).  
+
+#### 1º: Compile e instale no sistema
+
+Para compilar todos os binários --- com exceção ao ``ldconfig``, que aqui é um
+*script* shell ---, estaremos utilizando apenas um laço de repetição \```for``' e
+então instalando-os utilizando a ferramenta ``install``(1), que já utilizamos
+antes inclusive.
+
+```sh
+for cmd in cmd/*.c; do
+	cmd_binary_name="$(basename $cmd .c)"
+	gcc -static "$cmd" -o "$cmd_binary_name" \
+	&& install -m755 "$cmd_binary_name" /usr/bin \
+	&& rm -v "$cmd_binary_name"
+done \
+&& install -m755 cmd/ldconfig /sbin
+```
+
+***
+**Nota para compilações futuras**: Eu deveria escrever um Makefile para tudo,
+assim não teríamos o trabalho de compilar e instalar no sistema-base
+manualmente.   
+
+***
+
+### Attr (ferramentas para lidar com atributos no sistema de arquivos)
 
 #### 1º: Rode o *script* ``configure``
 
+```sh
+./configure --prefix=/usr     \
+            --bindir=/bin     \
+            --sysconfdir=/etc \
+            --disable-static  \
+            --docdir=/usr/share/doc/$(basename $(pwd))
+```
+
 #### 2º: Compile e instale no sistema
 
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
 
-### GNU Multiple Precision Floating-Point Reliable Library (ou simplesmente MPFR) 
+```sh
+find /usr/lib -type l -name 'libattr.so*' -exec rm -vf {} \; \
+	&& mv /usr/lib/libattr.so.* /lib \
+	&& (cd /lib; ln libattr.so.?.?.* libattr.so.1) \
+	&& ln -s /lib/libattr.so.?.?.* /usr/lib/libattr.so
+```
+
+
+### A.C.L. (ferramentas para administrar a Lista de Controle de Acesso)
 
 #### 1º: Rode o *script* ``configure``
 
+```sh
+./configure --prefix=/usr     \
+            --bindir=/bin     \
+            --disable-static  \
+            --docdir=/usr/share/doc/$(basename $(pwd))
+```
+
 #### 2º: Compile e instale no sistema
 
-### GNU Multiple Precision Complex Library (ou simplesmente MPC)
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
+```sh
+find /usr/lib -type l -name 'libacl.so*' -exec rm -vf {} \; \
+	&& mv /usr/lib/libacl.so.* /lib \
+	&& (cd /lib; ln libacl.so.?.?.* libacl.so.1) \
+	&& ln -s /lib/libacl.so.?.?.* /usr/lib/libacl.so
+```
+
 
 ### GNU ncurses
 
@@ -3635,9 +4077,10 @@ feito em 16 de Julho de 2011 por Eric W. Biederman na árvore de desenvolvimento
 principal do iproute2, implementando originalmente a função ``check_setns()``
 no *script* ``configure``, a fim de resolver um outro erro --- extremamente
 similar ao nosso, mas que foi provocado por outros fatores --- que havia sido
-experienciado por Dan McGee, um desenvolvedor de software de Chicago que trabalhou
-no projeto Arch Linux como desenvolvedor do gerenciador de pacotes Pacman e
-mantenedor do *website* do projeto[], enquanto ele empacotava o iproute2[].  
+experienciado por Dan McGee, um desenvolvedor de software chicagoense que
+trabalhou no projeto Arch Linux como desenvolvedor do gerenciador de pacotes
+Pacman e mantenedor do *website* do projeto[], enquanto ele empacotava o
+iproute2[].  
 
 Infelizmente, por uma questão de tempo e paciência, eu acabei por não conseguir
 traçar a causa real desse erro.  
@@ -3769,7 +4212,7 @@ de 2022 por mim mesmo na resposta ``1233496080`` à mesma *issue*[WW], assim com
 também já foi corrigido na documentação em si (ou seja, esse erro está aqui para
 fins históricos, pois não irá aparecer para você).
 
-## *"Não consigo recompilar a ``libbfd`` com a opção ``-fPIC``, aparentemente o diretório-raiz das Binutils deve ser limpo antes."*
+## *“Não consigo recompilar a ``libbfd`` com a opção ``-fPIC``, aparentemente o diretório-raiz das Binutils deve ser limpo antes.”*
 
 Enquanto eu compilava o estágio de ferramentas de compilação para o Copacabana
 nos últimos dias, eu encontrei esse erro quando tentei recompilar a biblioteca
@@ -3855,6 +4298,23 @@ segurança antes, mas sim fazendo as alterações diretamente nos diretórios da
 bibliotecas[^AB].  
 Assim como o erro anterior, esse erro também já foi consertado na documentação
 em si, então ele está sendo citado apenas para fins históricos.
+
+## *“Eu não consigo compilar o Shadow com suporte ao Attr e ao A.C.L.”*
+
+Enquanto eu compilava o sistema-base do Copacabana em 28 de Outubro de 2022, eu
+dei de encontro com um erro um bocado curioso --- o qual eu não fiz, de fato,
+questão de salvar o registro, entretanto, eu gostaria de dissertar acerca dele.  
+Basicamente, quando eu tentava compilar o Shadow com suporte às bibliotecas Attr
+e A.C.L., eu percebi que, de alguma maneira, "conflitavam" com o utmpx do
+Skarnet, tanto é que, no Adélie Linux, o suporte a elas é desabilitado na
+compilação do Shadow.  
+O motivo de fato? Não faço ideia ainda, só sei que a solução foi deixar as
+tais bibliotecas serem instaladas posteriormente. Isso já foi corrigido na
+documentação, logo esse erro só é citado aqui por uma questão de
+curiosidade/princípio histórico.  
+Não é uma descrição tão completa quanto eu gostaria, mas creio ser o suficiente
+para explicar um erro críptico.
+
 
 [^1]: https://webcache.googleusercontent.com/search?q=cache:Ls6QkZbwhsIJ:https://stat.ethz.ch/R-manual/R-devel/library/utils/help/untar.html+&cd=9&hl=pt-BR&ct=clnk&gl=br#:~:text=OpenBSD
 [^2]: https://www.linuxfromscratch.org/museum/lfs-museum/8.4/LFS-BOOK-8.4-HTML/chapter05/gcc-pass2.html 
@@ -3970,6 +4430,16 @@ em si, então ele está sendo citado apenas para fins históricos.
 [^87]: https://gcc.gnu.org/onlinedocs/gcc/Code-Gen-Options.html
 [^88]: http://web.archive.org/web/20180801014616/http://www.iecc.com/linker/linker08.html
 [^89]: http://web.archive.org/web/20180824182713/https://www.iecc.com/linker/linker10.html
+[^90]: https://gcc.gnu.org/legacy-ml/gcc-help/2012-04/msg00016.html
+	https://gcc.gnu.org/legacy-ml/gcc-help/2012-04/msg00017.html
+[^91]: https://www.mpfr.org/#extensions
+[^92]: https://www.mpfr.org/#introduction
+[^93]: https://www.fractalforums.com/programming/has-anyone-compared-performance-of-gmp-with-mpfr-when-computing-the-m-set/msg24334/#msg24334
+[^94]: https://github.com/gcc-mirror/gcc/blob/releases/gcc-10.3.0/libatomic/acinclude.m4#L188-L204
+[^95]: https://gcc.gnu.org/legacy-ml/gcc-patches/2016-07/msg01249.html
+[^96]: https://sourceware.org/glibc/wiki/GNU_IFUNC
+[^97]: https://maskray.me/blog/2021-01-18-gnu-indirect-function 
+[^98]: https://www.openwall.com/lists/musl/2014/11/11/2
 
 Nota[12]: https://github.com/dslm4515/Musl-LFS/commit/19e881cd880ecd6fc8a6711c1c9038c2f3221381i
 
