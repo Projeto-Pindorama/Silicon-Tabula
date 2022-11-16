@@ -2836,7 +2836,9 @@ Por fim, ao invés de instalarmos os binários por meio do *script*
 
 ```sh
 install -m755 arch/$(bin/package host type)/bin/ksh /bin/ksh \
-&& install -m444 src/cmd/ksh93/sh.1 /usr/share/man/man1/ksh.1
+&& (cd /bin; ln -sf ksh sh) \
+&& install -m444 src/cmd/ksh93/sh.1 /usr/share/man/man1/ksh.1 \
+&& (cd /usr/share/man/man1; ln -s ksh.1 sh.1)
 ```
 
 ### musl-compat
@@ -3272,7 +3274,7 @@ em tradução literal, "calculadora básica").
 #### 1º: Rode o *script* ``configure``
 
 ```sh
-CC=gcc LDFLAGS='-static' ./configure --prefix=/usr -O3
+CC=gcc LDFLAGS='-static' ./configure --prefix=/usr --bindir=/bin -O3
 ```
 
 #### 2º: Compile e instale no sistema
@@ -3431,8 +3433,9 @@ patch -p1 -d ./shadow-4.8.1/ < \
 ```sh
 LIBS='-lutmps' \
 ./configure --sysconfdir=/etc \
-            --enable-utmpx \
-            --with-group-name-max-length=32
+	--enable-utmpx \
+	--with-group-name-max-length=32 \
+	--disable-nls
 ```
 
 #### 3º: Compile e instale no sistema
@@ -3663,10 +3666,10 @@ Por fim, refaça as ligações simbólicas antes ligadas na toolchain intermedi�
 para o diretório ``/usr/ccs/lib``:
 
 ```sh
-for i in libgcc_s.so libgcc_s.so.1 libstdc++.a libstdc++.so \
+for lib in libgcc_s.so libgcc_s.so.1 libstdc++.a libstdc++.so \
 	libstdc++.so.6; do
-	[ -L "/usr/lib/$i" ] && rm -v "/usr/lib/$i" \
-	&& ln -s "/usr/ccs/lib/$i" "/usr/lib/$i"
+	[ -L "/usr/lib/$lib" ] && rm -v "/usr/lib/$lib" \
+	&& ln -s "/usr/ccs/lib/$lib" "/usr/lib/$lib"
 done
 ```
 
@@ -3841,6 +3844,90 @@ manualmente.
 
 ***
 
+### pkgconf
+
+O pkgconf é uma implementação do pkg-config, um programa que coleta metadados
+sobre bibliotecas instaladas a fim de facilitar o processo de compilação de um
+programa que as requira.  
+Estaremos utilizando essa implementação do pkg-config pois, além de estar numa
+licença mais liberal, é independente da Glib (que não deve ser confundida com
+"glibc", que é a abreviatura em inglês da biblioteca C GNU, mas sim é a
+biblioteca utilizada pelo GTK e pelo GNOME).
+
+***
+**Nota para compilações futuras**: Deveríamos mover o diretório do pkg-config
+para ``/usr/share/lib/pkgconfig`` ao invés do ``/usr/lib/pkgconfig``, já que
+os arquivos do pkg-config são independentes de arquitetura. Isso obviamente
+requeriria uma mudança na execução do ``configure`` de algumas bibliotecas e
+programas já instalados aqui.
+
+***
+
+#### 1º: Rode o *script* ``configure``
+
+```sh
+./configure --prefix=/usr \
+	--sysconfdir=/etc \
+	--localstatedir=/var \
+	--with-pkg-config-dir=/usr/lib/pkgconfig 
+```
+
+#### 2º: Compile e instale no sistema
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install \
+	&& (cd /usr/bin; ln pkgconf pkg-config)
+```
+
+### GNU ncurses
+
+E aqui estamos de novo! GNU ncurses! 
+
+#### 1º: Compile e instale no sistema
+
+```sh
+./configure --prefix=/usr	\
+	--mandir=/usr/share/man	\
+	--with-pkg-config-libdir=/usr/lib/pkgconfig	\
+	--with-shared	\
+	--with-normal	\
+	--without-debug	\
+	--enable-termcap	\
+	--enable-pc-files	\
+	--enable-widec
+```
+
+#### 2º: Compile e instale no sistema
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
+Por fim, mova a biblioteca dinâmica do ``/usr/lib`` para o ``/lib``, refaça as
+ligações simbólicas e faça com que o linkeditor use as bibliotecas para *wide
+characters* por padrão.  
+Parece muita coisa, mas está tudo compacto nesse bloco de código.
+
+```sh
+mv /usr/lib/libncursesw.so.?.? /lib \
+&& for symlink in /usr/lib/libncursesw.so*; do
+	[ -L "$symlink" ] && rm "$symlink"
+	ln -s /lib/libncursesw.so.?.? "$symlink"
+done \
+&& [ -e /usr/lib/libcursesw.so ] && rm /usr/lib/libcursesw.so
+echo "INPUT(-lncursesw)" > /usr/lib/libcursesw.so \
+&& for lib in ncurses form panel menu; do
+	[ -e "/usr/lib/lib${lib}.so" ] \
+	&& rm -f "/usr/lib/lib${lib}.so"
+	echo "INPUT(-l${lib}w)" > "/usr/lib/lib${lib}.so" \
+	&& (cd /usr/lib/pkgconfig; ln -s "${lib}w.pc" "${lib}.pc")
+done \
+&& (cd /usr/lib; ln -s libncurses.so libcurses.so; \
+	ln -s libncursesw.a libncurses.a)
+```
+
 ### Attr (ferramentas para lidar com atributos no sistema de arquivos)
 
 #### 1º: Rode o *script* ``configure``
@@ -3860,13 +3947,14 @@ gmake -j$(grep -c 'processor' /proc/cpuinfo) \
 	&& gmake install
 ```
 
+Por fim, reorganize as bibliotecas e refaça as ligações simbólicas.
+
 ```sh
 find /usr/lib -type l -name 'libattr.so*' -exec rm -vf {} \; \
 	&& mv /usr/lib/libattr.so.* /lib \
-	&& (cd /lib; ln libattr.so.?.?.* libattr.so.1) \
-	&& ln -s /lib/libattr.so.?.?.* /usr/lib/libattr.so
+	&& (cd /lib; ln -s libattr.so.?.?.* libattr.so.1) \
+	&& ln -s /lib/libattr.so.1 /usr/lib/libattr.so
 ```
-
 
 ### A.C.L. (ferramentas para administrar a Lista de Controle de Acesso)
 
@@ -3886,27 +3974,89 @@ gmake -j$(grep -c 'processor' /proc/cpuinfo) \
 	&& gmake install
 ```
 
+Por fim, reorganize as bibliotecas e refaça as ligações simbólicas.
+
 ```sh
 find /usr/lib -type l -name 'libacl.so*' -exec rm -vf {} \; \
 	&& mv /usr/lib/libacl.so.* /lib \
-	&& (cd /lib; ln libacl.so.?.?.* libacl.so.1) \
-	&& ln -s /lib/libacl.so.?.?.* /usr/lib/libacl.so
+	&& (cd /lib; ln -s libacl.so.?.?.* libacl.so.1) \
+	&& ln -s /lib/libacl.so.1 /usr/lib/libacl.so
 ```
 
+### Libcap
 
-### GNU ncurses
+#### 1º: Compile e instale no sistema
 
 ```sh
-           ./configure --prefix=/usr \
-            --mandir=/usr/share/man   \
-            --with-shared             \
-            --with-normal             \
-            --without-debug           \
-            --without-normal          \
-            --enable-termcap          \
-            --enable-pc-files         \
-            --enable-widec            \
-            --with-pkg-config-libdir=/usr/lib/pkgconfig
+lib=lib gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake lib=lib \
+	PKGCONFIGDIR=/usr/lib/pkgconfig install 
+```
+
+Por fim, corrija permissões, reorganize as bibliotecas, e
+refaça as ligações simbólicas.
+
+```sh
+chmod 755 /lib/libcap.so.?.?? \
+	&& mv /lib/libpsx.a /usr/lib \
+	&& { [ -L /lib/libcap.so ] && rm /lib/libcap.so; } \
+	&& ln -s /lib/libcap.so.? /usr/lib/libcap.so
+```
+
+### psmisc
+
+#### 1º: Rode o *script* ``configure``
+
+```sh
+LDFLAGS="-static $(pkg-config ncurses --libs)" \
+./configure --prefix=/usr        \
+	--sysconfdir=/etc	\
+	--localstatedir=/var	\
+	--enable-harden-flags	\
+	--enable-ipv6	\ 
+	--disable-selinux	\
+	--disable-nls
+```
+
+#### 2º: Compile e instale no sistema
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
+Por fim, reorganize os binários nos diretórios corretos:
+
+```sh
+for prog in fuser killall; do
+	mv "/usr/bin/$prog" "/bin/$prog"
+done
+```
+
+### Almquist shell (estático, para o ``/sbin/sh``)
+
+Esta é a nossa implementação de um shell POSIX que iremos utilizar no sistema,
+mais especificamente para o usuário ``root``, sendo o ``/sbin/sh``.  
+Nota-se que a ideia é ter um shell enxuto o bastante e estável para caso seja
+necessária uma manutenção posterior, logo estamos compilando nos mesmos moldes
+da toolchain, só que estático.
+
+#### 1º: Rode o *script* ``configure``
+
+```sh
+sh configure --prefix=/	\
+	--bindir=/sbin	\
+	--mandir=/usr/share/man	\
+	--enable-static	\
+	--without-libedit
+```
+
+#### 2º: Compile e instale na toolchain
+
+```sh
+gmake -j1 \
+&& install -m755 src/dash /sbin/sh \
+&& install -m444 src/dash.1 /usr/share/man/man8/sh.8
 ```
 
 ### Heirloom 2007
@@ -3986,7 +4136,7 @@ enquanto ele trabalhava na versão 10.0.0-RC1, e corrigido no *commit*
 ``19e881cd880ecd6fc8a6711c1c9038c2f3221381`` no dia 12 de dezembro de
 2021.[12]
 
-## *“O IPRoute2 simplesmente não compila, devolve um erro sobre "uma declaração estática de ``setns()`` seguindo uma declaração não-estática"”* 
+## *“O IPRoute2 simplesmente não compila, devolve um erro sobre 'uma declaração estática de ``setns()`` seguindo uma declaração não-estática'”* 
 
 Enquanto eu compilava o sistema-base do Copacabana em 17 de Fevereiro de 2022,
 já aproximadamente chegando ao fim do processo e da lista de pacotes, eu
@@ -4152,7 +4302,7 @@ dia 17 de Fevereiro de 2022[XY].
 Foi, por fim, consertado (ou ao menos, explicado?) no dia 2 de junho de 2022 por mim
 mesmo na resposta ``1145479714`` à mesma *issue*[XX].
 
-## *“O GNU m4 simplesmente não compila no sistema-base, devolve uma série de erros sobre "referência não-definida a \```error``'"”*
+## *“O GNU m4 simplesmente não compila no sistema-base, devolve uma série de erros sobre 'referência não-definida a \```error``''”*
 
 Enquanto eu compilava o sistema-base do Copacabana em 31 de Agosto de 2022, na
 parte onde monta-se as ferramentas de desenvolvimento, eu encontrei este
