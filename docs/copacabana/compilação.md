@@ -3593,9 +3593,10 @@ mkdir build \
 && cd build \
 && libat_cv_have_ifunc=no \
 SED=sed ../configure --prefix=/usr/ccs	\
+	--docdir=/usr/ccs/share/doc/gcc-10.3.1	\
 	--build='x86_64-linux-musl'	\
 	--with-arch='x86-64'	\
-	--with-pkgversion="Pindorama Copacabana $(uname -m), build $(date +%d%m%y)" \
+	--with-pkgversion="Pindorama Copacabana $(uname -m), build $(date +%d%m%y)"	\
 	--enable-checking=release	\
 	--with-linker-hash-style='sysv'	\
 	--enable-linker-build-id	\
@@ -4033,6 +4034,93 @@ for prog in fuser killall; do
 done
 ```
 
+### iana-etc
+
+### 1º: Instale no sistema
+
+Como esse pacote restringe-se, simplesmente, a uma "tabela arco-íris" de
+serviços, seus números de porta e protocolos e protocolos, respectivamente, mas
+tem uma importância considerável pois, segundo sua página de manual, é utilizado
+para consultas.
+
+```sh
+install -m644 services protocols /etc
+```
+
+### GNU Bison
+
+Estaremos compilando, agora para o sistema-base --- que, caso você esteja
+portando ou reempacotando, é parte do *stage* de desenvolvimento --- o GNU
+Bison, que é, como dito anteriormente, um compilador-de-compilador.
+
+#### 1º: Rode o *script* ``configure``
+
+```sh
+ac_cv_lib_error_at_line=no	\
+sh configure --prefix=/usr/ccs	\
+	--docdir=/usr/ccs/share/doc/$(basename $(pwd))	\
+	--disable-nls
+```
+
+#### 2º: Compile e instale no sistema
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
+### **F**ast **Lex**ical Analyzer Generator (vulgo flex ou simplesmente ``lex``(1))
+
+#### 1º: Rode o *script* ``configure``
+
+```sh
+HELP2MAN=$(which true) \
+ac_cv_func_malloc_0_nonnull=yes \
+ac_cv_func_realloc_0_nonnull=yes \
+./configure --prefix=/usr/ccs \
+	--docdir=/usr/ccs/share/doc/$(basename $(pwd))
+```
+
+#### 2º:  Compile e instale na toolchain
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install \
+	&& (cd /usr/ccs/bin; ln -s flex lex)
+```
+
+### New AWK (vulgo BWK AWK, "One true AWK" ou simplesmente ``nawk``(1))
+
+O New AWK é uma implementação de interpretador para a linguagem AWK.
+
+#### 1º: Compile e instale na toolchain
+
+Rode o GNU Make como normalmente, mas passando a declaração ``CC='gcc -static'``
+antes de executar o comando, assim teremos um binário linkeditado estaticamente.
+
+```sh
+CC='gcc -static' gmake -j$(grep -c 'processor' /proc/cpuinfo)
+```
+
+Como o Nawk não tem um alvo ``install`` no Makefile, nós teremos como resultado
+um arquivo chamado ``a.out``:
+
+```console
+copacabana_chroot%; lc -lt                                                         
+total 7708                                                                         
+-rwxrwxr-x   1 root      217592 Nov 19 17:14 a.out 
+```
+
+Logo, devemos instalar manualmente, então apenas execute o bloco de comandos
+abaixo:
+
+```sh
+install -m755 a.out /bin/nawk \
+	&& (cd /bin; ln -s nawk awk) \
+&& install -m444 awk.1 /usr/share/man/man1 \
+&& gmake clean
+``` 
+
 ### Almquist shell (estático, para o ``/sbin/sh``)
 
 Esta é a nossa implementação de um shell POSIX que iremos utilizar no sistema,
@@ -4059,44 +4147,225 @@ gmake -j1 \
 && install -m444 src/dash.1 /usr/share/man/man8/sh.8
 ```
 
-### Heirloom 2007
+### GNU Libtool
+
+#### 1º: Rode o *script* ``configure``
 
 ```sh
-mv bin/* usr/bin/
+./configure --prefix='/usr/ccs' \
+	--docdir="/usr/ccs/share/doc/$(basename $(pwd))"
 ```
 
+#### 2º:  Compile e instale na toolchain
+
 ```sh
-for i in usr/bin/{STTY,bfs,cat,ch{grp,mod,own},copy,date,df{,space},du,echo,ed,expr,\
-	{,f,e,p}grep,hostname,install,kill,lc,listusers,logname,ls,mk{dir,fifo,nod},mt,mvdir,\
-	oawk,pathchk,ps,pwd,rm{,dir},sleep,stty,sync,tape{,cntl},tcopy,test,touch,tty,uname,w{,ho{,ami,do}}}; do
-  cp -v $i bin/ \
-  && rm -vf $i
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
+### GNU dbm
+
+#### 1º: Pequeno ajuste no ``Makefile.in``
+
+Antes de sequer configurarmos a árvore de código-fonte como faríamos
+normalmente, precisamos ajustar o Makefile a fim de informar que o dono
+("*owner*") dos arquivos que serão instalados no sistema não é o usuário e nem
+pertence ao grupo "``bin``", mas sim "``root``" e "``wheel``", respectivamente.  
+Mesmo o usuário e o grupo "``bin``" não sendo mais usados por questões de segurança
+desde que o NFS surgiu, o sistema de montagem do GNU dbm ainda faz uso deles
+para configurar as permissões no sistema.
+
+```sh
+cp -v Makefile.in{,.orig} \
+&& sed '/BINOWN/s/bin/root/; /BINGRP/s/bin/wheel/' < \
+	Makefile.in.orig > Makefile.in
+```
+
+#### 2º: Rode o *script* ``configure``
+
+```sh
+./configure --prefix='/usr'	\
+	--enable-libgdbm-compat	\
+	--enable-fast-install	\
+	--disable-static
+```
+
+#### 3º:  Compile e instale na toolchain
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
+### Gperf
+
+#### 1º: Rode o *script* ``configure``
+
+```sh
+./configure --prefix='/usr' \
+	--docdir="/usr/share/doc/$(basename $(pwd))"
+```
+
+#### 2º:  Compile e instale na toolchain
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
+### Expat
+
+#### 1º: Rode o *script* ``configure``
+
+```sh
+./configure --prefix='/usr' \
+	--docdir="/usr/share/doc/$(basename $(pwd))"
+```
+
+#### 2º:  Compile e instale na toolchain
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
+### Perl
+
+#### 1º: Rode o *script* ``Configure``
+
+```sh
+./Configure -des \
+	-Dprefix=/usr/ccs \
+	-Dvendorprefix=/usr/ccs \
+	-Dman1dir=/usr/ccs/share/man/man1 \
+	-Dman3dir=/usr/ccs/share/man/man3 \
+	-Dcc=gcc \
+	-Dcccdlflags='-fPIC' \
+	-Dccdlflags='-rdynamic' \
+	-Doptimize="$CFLAGS" \
+	-Duselargefiles \
+	-Dusethreads \
+	-Duseshrplib \
+	-Dusenm \
+	-Dd_semctl_semun \
+	-Dcf_by='Pindorama'
+```
+
+#### 2º:  Compile e instale na toolchain
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
+Por fim, refaça a ligação no ``/usr/bin``. Como é presumido que o ``/usr/ccs``
+esteja na mesma partição/disco que o resto do diretório ``/usr``, estaremos
+criando uma ligação física.
+
+```sh
+cd /usr/bin; ln ../ccs/bin/perl perl
+```
+
+### XML::Parser
+
+#### 1º: Rode o *script* ``Makefile.PL``
+
+#### 2º:  Compile e instale na toolchain
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
+### Heirloom Toolchest
+
+***
+**Nota**: Desde que a parte acerca da toolchain foi escrita, um tempo
+considerável se passou. Neste meio tempo, a bifurcação Heirloom-NG foi criada
+para suprir a grande parte dos *patches* que eram utilizados anteriormente. Em
+suma, ao contrário do Heirloom Toolchest original, o Heirloom-NG pode ser
+compilado com paralelização sem nenhum problema em especial, além de que os
+*patches* foram reduzidos apenas a consertar os diretórios e a excluir alguns
+programas que não iremos precisar no sistema-base.
+
+***
+
+#### 1º: Aplique os *patches*
+
+```sh
+patch -p1 -d ./heirloom-070715/ < \
+	"$COPA/usr/src/copacabana/patches/heirloom-070715/heirloom-070715_tools.patch"
+```
+
+#### 2º: Compile e instale no sistema-base
+
+```console
+gmake -j$(grep -c 'processor' /proc/cpuinfo)
+```
+
+Então, instale os arquivos para o diretório ``/tmp/heirloom-ng``.
+
+```console
+gmake install
+```
+
+Entre no diretório ``/tmp/heirloom-ng``, onde nossos arquivos estão
+temporariamente instalados.
+
+```console
+cd /tmp/heirloom-ng
+```
+
+Então, reorganize os binários dos programas, remova as ligações simbólicas para
+programas que não compilamos --- que, por um erro, o sistema de montagem do
+Heirloom ainda cria, mesmo a gente tendo colocado esses programas na lista de
+diretórios a se pular --- e refaça as ligações simbólicas anteriores para os
+novos caminhos dos binários no ``bin/``.
+
+***
+**Nota**: Estaremos utilizando ligações simbólicas pois se é esperado que a
+partição do diretório ``/usr`` seja separada da partição ``/``, logo, não
+poderemos utilizar ligações físicas, pois essas não funcionam entre discos
+diferentes. Isso já foi citado anteriormente, no começo dessa seção.
+
+***
+
+```sh
+mkdir ./bin \
+&& mkdir ./usr/sbin \
+&& for cmd in usr/bin/{STTY,basename,bfs,cat,ch{grp,mod,own},cp,copy,date,dd,dirname,df{,space},du,echo,ed,expr,false,{,f,e,p}grep,hostname,install,lc,ln,listusers,logname,ls,mk{dir,fifo,nod},mt,mv{,dir},pathchk,pkill,pwd,rm{,dir},sed,settime,sleep,stty,sync,tape{,cntl},tcopy,test,touch,true,tty,uname,uptime,w{,ho{,ami,do}}}; do
+  { printf 'Copying %s to /bin.\n' "$cmd"; cp "$cmd" ./bin/; } \
+  && { printf 'Removing %s.\n' "$cmd"; rm -f "$cmd"; }
+done \
+&& mv usr/bin/logins usr/sbin \
+&& for link in usr/ucb/bin/hostname usr/ucb/bin/tcopy \
+	usr/ucb/bin/uptime usr/ucb/bin/w usr/ucb/bin/whoami \
+	usr/bin/s42/basename usr/bin/s42/chmod usr/bin/s42/du \
+	usr/bin/s42/echo usr/bin/s42/lc usr/bin/s42/ls \
+	usr/bin/s42/rm usr/bin/s42/rmdir usr/bin/s42/test \
+	usr/bin/s42/touch usr/bin/s42/who; do
+	dir="$(dirname "$link")"
+	prog="$(basename "$link")"
+	( cd "$dir"; ln -sf "../../../bin/$prog" "$prog" )
 done
 ```
 
-```sh
-mv usr/bin/logins usr/sbin/
-```
-
-### lobase
+Por fim, instale utilizando a ferramenta ``tar``:
 
 ```sh
-mkdir -p {s,}bin usr/ccs/bin
+tar -cvf - . | tar -xvf - -C/
 ```
 
-```sh
-for i in usr/bin/{cat,chmod,cp,date,dd,domainname,false,install,kill,ln{,dir},mkdir,mv,pwd,readlink,rm{,dir},sed,shar,stat,true,vis}; do
-  cp -v $i bin/$(basename $i) && rm -vf $i
-done
-```
+# *“Faça, fuce, force, vá! Não chore na porta...”*: Solucionando (e explicando) problemas
 
-```sh
-for i in usr/bin/{lorder,mkdep,unifdef}; do
-  cp -v $i usr/ccs/bin/$(basename $i) && rm -vf $i
-done
-```
-
-# *“Faça, fuce, force, vá, não chore na porta...”*: Solucionando (e explicando) problemas
+> "Faça, fuce, force
+> Mas!
+> Não fique na fossa
+> Faça, fuce, force
+> Mas!
+> Não chore na porta"
+> — Raul Seixas em "Faça, fuce, force", 4ª faixa
+> do álbum póstumo "Documento" de 1998.
 
 Essa seção é basicamente o "*troubleshooting*" da tabula: ela existe
 justamente para explicar problemas que você talvez enfrente durante a compilação
@@ -4466,6 +4735,39 @@ curiosidade/princípio histórico.
 Não é uma descrição tão completa quanto eu gostaria, mas creio ser o suficiente
 para explicar um erro críptico.
 
+## *“O GNU Bison simplesmente não compila no sistema-base, devolve uma série de erros sobre 'referência não-definida a \```error``''”*
+
+Déjà-vu? Sim, esse é um erro igual ao do GNU m4 que tivemos anteriormente.
+
+```console
+Making all in .
+gmake[2]: Entering directory `/usr/src/cmp/bison-3.7.6'
+  CCLD     src/bison
+gcc: warning: '-mcpu=' is deprecated; use '-mtune=' or '-march=' instead
+src/bison-files.o:files.c:function xfopen: error: undefined reference to 'error'
+src/bison-files.o:files.c:function xfclose: error: undefined reference to 'error'
+src/bison-files.o:files.c:function xfdopen: error: undefined reference to 'error'
+src/bison-files.o:files.c:function xfclose: error: undefined reference to 'error'
+collect2: error: ld returned 1 exit status
+gmake[2]: *** [src/bison] Error 1
+gmake[2]: Leaving directory `/usr/src/cmp/bison-3.7.6'
+gmake[1]: *** [all-recursive] Error 1
+gmake[1]: Leaving directory `/usr/src/cmp/bison-3.7.6'
+gmake: *** [all] Error 2
+```
+
+A causa desse erro é, novamente, a mesma do GNU m4 quando compilado sem a
+pré-definição das variáveis de cachê: não há uma definição da função
+``error()``, e isso não é detectado pelo *script* ``configure`` graças ao pacote
+musl-compat.  
+A solução para esse erro é simples: devemos definir a variável de cachê
+"``ac_cv_lib_error_at_line``" como "``no``".  
+
+Vale ressaltar que, assim como os últimos erros, esse erro já foi corrigido na
+própria documentação e está aqui por uma mera questão histórica.  
+Curiosamente, esse erro não foi documentado no Void Linux, que faz uso do pacote
+musl-compat no sistema-base por padrão, logo, esse bug foi descoberto no
+Copacabana Linux em 18 de Novembro de 2022.
 
 [^1]: https://webcache.googleusercontent.com/search?q=cache:Ls6QkZbwhsIJ:https://stat.ethz.ch/R-manual/R-devel/library/utils/help/untar.html+&cd=9&hl=pt-BR&ct=clnk&gl=br#:~:text=OpenBSD
 [^2]: https://www.linuxfromscratch.org/museum/lfs-museum/8.4/LFS-BOOK-8.4-HTML/chapter05/gcc-pass2.html 
