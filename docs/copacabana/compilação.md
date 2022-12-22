@@ -1567,8 +1567,8 @@ Como o Makefile do pigz não tem um alvo ``install``, teremos de instalar
 manualmente (assim como no New AWK, inclusive o *hack* em Shell será semelhante).  
 
 ```sh
-for i in pigz unpigz; do
-	install -m755 $i /tools/bin
+for cmd in pigz unpigz; do
+	install -m755 "$cmd" /tools/bin
 done \
 && ( \
 	cd /tools/bin \
@@ -1781,7 +1781,7 @@ Esse *patch* faz com que o star seja compilado para o prefixo ``/tools`` ao inv�
 de ``/opt/schily``, é uma simples alteração no arquivo ``DEFAULTS/Defaults``,
 dentro da árvore de código-fonte do star.  
 Posteriormente, no sistema-base, teremos outro *patch* --- que, nesse momento
-do dia 27 de maio de 2022 eu ainda não fiz --- que vai fazer com que o prefixo
+do dia 27 de maio de 2022, eu ainda não fiz --- que vai fazer com que o prefixo
 seja o ``/`` e que o binário em si seja linkeditado de forma completamente
 estática.  
 
@@ -2999,8 +2999,30 @@ temporário, pois não seria apagado/limpo em cada reinicialização; logo o
 
 ```sh
 gmake -j$(grep -c 'processor' /proc/cpuinfo) \
-	&& gmake install
+	&& gmake install \
+	&& (cd /usr/include; ln -sf utmps/utmpx.h ./utmpx.h)
 ``` 
+
+***
+**Nota**: Não teremos de nos preocupar com o antigo cabeçalho ``utmp.h`` da
+musl, pois esse, mesmo sendo um rascunho --- como já dito anteriormente ---,
+acaba por incluir o cabeçalho do utmps, o ``utmpx.h``, assim tendo as
+definições, digamos, corrigidas.
+
+**Linhas 1 até 8, do arquivo ``/usr/include/utmp.h``:** 
+ 
+```c
+#ifndef _UTMP_H
+#define _UTMP_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <utmpx.h>
+```
+
+***
 
 Por fim, gere o arquivo contendo metadados da biblioteca para o ``pkg-config``. 
 
@@ -3412,6 +3434,9 @@ done \
 
 ### Shadow (ferramentas para administrar usuários e grupos)
 
+O Shadow é um conjunto de ferramentas criadas para administrar usuários e
+grupos, como, por exemplo, a ``useradd``(8), ``userdel``(8), ``passwd``(8) etc.
+
 **Nota**: Nesse momento, não estaremos compilando o Shadow com suporte ao
 OpemPAM de primeira, pois além de não ser muito claro, tanto pelo Musl-LFS
 quanto pelo manual do Linux from Scratch, se podemos compilar o OpemPAM
@@ -3687,7 +3712,7 @@ programas com Otimização a Tempo de Linkedição ("*Link Time Otimization*", o
 LTO em inglês):
 
 ```sh
-ln -s "/usr/ccs/libexec/gcc/$(gcc -dumpmachine)/10.3.1/liblto_plugin.so" \
+ln "/usr/ccs/libexec/gcc/$(gcc -dumpmachine)/10.3.1/liblto_plugin.so" \
 	 /usr/ccs/lib/bfd-plugins/liblto_plugin.so
 ```
 
@@ -3864,6 +3889,14 @@ programas já instalados aqui.
 
 ***
 
+#### 1º: Pequeno ajuste no arquivo ``Makefile.in``
+
+```sh
+cp -v Makefile.in{,.orig} \
+&& sed '/m4datadir/s@$(datadir)@/usr/ccs/share@' < \
+	Makefile.in.orig > Makefile.in
+```
+
 #### 1º: Rode o *script* ``configure``
 
 ```sh
@@ -3985,6 +4018,11 @@ find /usr/lib -type l -name 'libacl.so*' -exec rm -vf {} \; \
 ```
 
 ### Libcap
+
+A Libcap implementa um conjunto de interfaces para as capacidades (daí que vem o
+"cap", de "*capable*", "capaz") do padrão POSIX.1e, essas que basicamente
+permitem que você separe o "monólito" de poder do usuário "``root``" em
+privilégios separados, já presentes no núcleo Linux.
 
 #### 1º: Compile e instale no sistema
 
@@ -4181,6 +4219,13 @@ cp -v Makefile.in{,.orig} \
 	Makefile.in.orig > Makefile.in
 ```
 
+Essa linha do sed faz o seguinte:
+
+* ``/BINOWN/s/bin/root/``: Busca pela linha contendo o padrão "``BINOWN``" e troca
+  o padrão "``bin``" por "``root``";
+* ``/BINGRP/s/bin/wheel/``: Busca pela linha contendo o padrão "``BINGRP``" e troca
+  o padrão "``bin``" por "``wheel``".
+
 #### 2º: Rode o *script* ``configure``
 
 ```sh
@@ -4268,13 +4313,407 @@ cd /usr/bin; ln ../ccs/bin/perl perl
 
 ### XML::Parser
 
+O XML::Parser é um módulo para lidar com documentos escritos em XML com a
+linguagem Perl, criado em cima da biblioteca Expat a fim de fornecer uma
+interface de alto-nível para o Expat.
+
 #### 1º: Rode o *script* ``Makefile.PL``
 
-#### 2º:  Compile e instale na toolchain
+Essa frase pode soar estranho de começo, afinal, como assim temos um Makefile
+escrito em Perl e que devemos rodar para, então, rodar o Make? Pois bem, é assim
+que o sistema de montagem do XML::Parser opera --- afinal, estamos trabalhando
+com um módulo de Perl.
+
+```sh
+perl Makefile.PL
+```
+
+#### 2º: Compile e instale na toolchain
 
 ```sh
 gmake -j$(grep -c 'processor' /proc/cpuinfo) \
 	&& gmake install
+```
+
+### Intltool
+
+#### 1º: Rode o *script* ``configure``
+
+```sh
+./configure --prefix=/usr/ccs
+```
+
+#### 2º: Compile e instale na toolchain
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
+### GNU autoconf 
+
+#### 1º: Rode o *script* ``configure``
+
+```sh
+./configure --prefix=/usr/ccs
+```
+
+#### 2º: Compile e instale na toolchain
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
+### GNU automake 
+
+#### 1º: Rode o *script* ``configure``
+
+```sh
+./configure --prefix=/usr/ccs
+```
+
+#### 2º: Compile e instale na toolchain
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
+### Musl-FTS (suporte às funções ``fts`` na biblioteca C musl)
+
+#### 1º: Pequeno ajuste no arquivo ``Makefile.am``
+
+```sh
+cp Makefile.am{,.orig} \
+&& sed '/pkgconfig_DATA/i pkgconfigdir = /usr/lib/pkgconfig' < \
+	Makefile.am.orig > Makefile.am
+```
+
+Essa linha do sed faz o seguinte:
+
+* ``/pkgconfig_DATA/i pkgconfigdir = /usr/lib/pkgconfig``: Busca pela linha
+  contendo o padrão ``pkgconfig_DATA`` e inclui, com o comando "``i``", a linha
+``pkgconfigdir = /usr/lib/pkgconfig``. Isso corrige o erro abaixo:
+```console
+copacabana_chroot% autoreconf -fiv 
+autoreconf: export WARNINGS=
+autoreconf: Entering directory '.'
+# [...]
+Makefile.am:8: error: 'pkgconfig_DATA' is used but 'pkgconfigdir' is undefined
+autoreconf: error: automake failed with exit status: 1
+```
+
+#### 2º: Gere o script ``configure`` com as auto\*tools
+
+```sh
+autoreconf -fiv
+```
+
+#### 3º: Rode o *script* ``configure``
+
+```sh
+CFLAGS="$CFLAGS -fPIC" \
+./configure --prefix=/usr \
+	--sysconfdir=/etc \
+	--localstatedir=/var
+```
+
+#### 4º: Compile e instale na toolchain
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
+### Musl-Obstack (suporte às funções e *macros* do Obstack na biblioteca C musl) 
+
+#### 1º: Pequeno ajuste no arquivo ``Makefile.am``
+
+```sh
+cp Makefile.am{,.orig} \
+&& sed '/pkgconfig_DATA/i pkgconfigdir = /usr/lib/pkgconfig' < \
+	Makefile.am.orig > Makefile.am
+```
+
+Essa linha do sed é exatamente igual à que usamos no pacote Musl-FTS, por isso
+não está sendo re-explicada aqui.
+
+#### 2º: Gere o script ``configure`` com as auto\*tools
+
+```sh
+autoreconf -fiv
+```
+
+#### 3º: Rode o *script* ``configure``
+
+```sh
+CFLAGS="$CFLAGS -fPIC" \
+./configure --prefix=/usr \
+	--sysconfdir=/etc \
+	--localstatedir=/var
+```
+
+#### 4º: Compile e instale na toolchain
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
+### XZ-Utils do Tukaani
+
+Esse pacote contém ferramentas e a biblioteca para a manipulação de arquivos
+comprimidos com o formato xz.
+
+#### 1º: Rode o *script* ``configure``
+
+```sh
+./configure --prefix=/usr \
+	--docdir="/usr/share/doc/$(basename $(pwd))" \
+	--disable-nls \
+	--disable-rpath
+```
+
+#### 2º: Compile e instale na toolchain
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install \
+	&& for cmd in /usr/bin/{lzcat,{,un}lzma,unxz,xz{,cat}}; do
+		{ cp "$cmd" "/bin/$(basename $cmd)" && rm "$cmd"; }
+	done \
+	&& { cp /usr/lib/liblzma.so.* /lib \
+		&& rm /usr/lib/liblzma.so.*; } \
+	&& (cd /lib; ln -sf liblzma.so.5.?.? liblzma.so.5) \
+	&& ln -sf /lib/liblzma.so.5 /usr/lib/liblzma.so
+```
+
+### Kmod
+
+O Kmod é um pacote que provê um conjunto de ferramentas para lidar com módulos
+do núcleo Linux, com funções como listar, habilitar, desabilitar etc.
+
+#### 1º: Rode o *script* ``configure``
+
+```sh
+./configure --prefix=/usr \
+	--bindir=/bin \
+	--sbindir=/sbin \
+	--sysconfdir=/etc \
+	--with-rootlibdir=/lib \
+	--with-zlib \
+	--with-xz \
+	--disable-manpages
+```
+
+#### 2º: Compile e instale na toolchain
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install \
+	&& for cmdlink in {dep,ins,ls,rm}mod mod{info,probe}; do
+		ln /bin/kmod "/sbin/$cmdlink"
+	done \
+	&& ln /bin/kmod /bin/lsmod
+```
+
+### gettext-tiny
+
+#### 1º: Compile e instale na toolchain
+
+```sh
+LDFLAGS='-static' LIBINTL='MUSL' \
+gmake prefix=/usr/ccs -j$(grep -c 'processor' /proc/cpuinfo) \
+&& gmake prefix=/usr/ccs install
+```
+
+### Argp-standalone
+
+#### 1º: Rode o *script* ``configure``
+
+```sh
+CFLAGS="$CFLAGS -std=c89 -fPIC" \
+./configure --prefix=/usr \
+	--sysconfdir=/etc \
+	--localstatedir=/var
+```
+
+#### 2º: Compile e instale no sistema
+
+```sh
+install -m644 ./libargp.a /usr/lib \
+&& install -m644 ./argp.h /usr/include 
+```
+
+### LibELF (das ELFUtils)
+
+#### 1º: Rode o *script* ``configure``
+
+```sh
+CFLAGS="-DFNM_EXTMATCH=0 -Wno-error \
+	-Wno-error=null-dereference
+	-Wl,-z,stack-size=2097152" \
+./configure --prefix=/usr \
+	--libdir=/lib \
+	--disable-debuginfod \
+	--disable-libdebuginfod
+```
+
+#### 2º: Compile e instale no sistema
+
+```sh
+gmake -C lib -j$(grep -c 'processor' /proc/cpuinfo) \
+&& gmake -C libelf -j$(grep -c 'processor' /proc/cpuinfo) \
+&& gmake -C libelf install \
+&& mv /lib/libelf.a /usr/lib/libelf.a \
+&& install -m644 ./config/libelf.pc /usr/lib/pkgconfig
+```
+
+### LibFFI
+
+#### 1º: Rode o *script* ``configure``
+
+```sh
+./configure --prefix=/usr \
+	--with-pic \
+	--enable-static \
+	--enable-shared \
+	--disable-multi-os-directory
+```
+
+#### 2º: Compile e instale no sistema
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+&& gmake -C ./x86_64-pc-linux-musl/ install \
+&& mv /usr/lib/libffi.so.7.?.? /lib \
+&& find /usr/lib/ -name 'libffi.so*' -type l -exec rm -vf {} \; \
+&& (cd /lib; ln -sf libffi.so.7.?.? libffi.so.7) \
+&& ln -sf /lib/libffi.so.7 /usr/lib/libffi.so 
+```
+
+### LibreSSL
+
+#### 1º: Rode o *script* ``configure``
+
+```sh
+./configure --prefix=/usr \
+	--sysconfdir=/etc \
+	--localstatedir=/var \
+	--mandir=/usr/share/man
+```
+
+#### 2º: Compile e instale no sistema
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install \
+&& for lib in /usr/lib/lib{crypto,tls,ssl}.so.??.?.?; do
+	libname="$(basename $lib)"
+	mv "$lib" "/lib/$libname" \
+	# Remove a antiga ligação simbólica no /usr/lib
+	{ [ -L "/usr/lib/${libname%.*.*}" ] && rm -f "/usr/lib/${libname%.*.*}"; } \
+	&& (cd /lib; ln -sf "$libname" "${libname%.*.*}") \
+	&& ln -sf "/lib/${libname%.*.*}" "/usr/lib/${libname%.*.*.*}"
+done 
+```
+
+### Python 3
+
+#### 1º: Aplique os *patches*
+
+```sh
+patch -p1 -d ./Python-3.9.1/ < \
+	/usr/src/copacabana/patches/Python-3.9.1/musl-find_library.patch
+```
+
+#### 2º: Rode o *script* ``configure``
+
+```sh
+./configure --prefix=/usr/ccs \
+	--with-dbmliborder=ndbm \
+	--with-system-expat \
+	--with-system-ffi \
+	--with-ensurepip='yes' \
+	--with-computed-gotos \
+	--with-lto \
+	--enable-optimizations \
+	--enable-shared \
+	--enable-ipv6 \
+	--enable-loadable-sqlite-extensions
+```
+
+#### 3º: Compile e instale no sistema
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install \
+	&& for lib in /usr/ccs/lib/libpython3{.9.so.1.0,.so}; do
+		(cd /usr/lib; ln -s "${lib}" .)
+	done
+```
+
+### Samurai (substituto para o Ninja Build)
+
+#### 1º: Pequeno ajuste no ``Makefile``
+
+```sh
+cp Makefile{,.orig} \
+&& sed '/PREFIX/s@/usr/local@/usr/ccs@' < \
+	Makefile.orig > Makefile
+```
+
+Essa linha do sed faz o seguinte:
+
+* ``/PREFIX/s@/usr/local@/usr/ccs@``: Busca pela linha contendo o padrão
+"``PREFIX``" e troca   o padrão "``/usr/local``" por "``/usr/ccs``".
+Aqui utilizamos "``@``" como separador ao invés de  "``/``" para que não
+tenhamos de utilizar o caractere de escape (barra invertida) a cada barra que
+é utilizada nos padrões acima, assim fazendo com que o resultado final seja mais
+legível.
+
+#### 2º: Compile e instale no sistema
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install \
+	&& (cd /usr/ccs/bin; ln -s samu ninja \
+	&& cd /usr/ccs/share/man/man1/; ln -s samu.1 ninja.1) 
+```
+
+### Meson
+
+### 1º: Compile e instale no sistema
+
+```sh
+python3 setup.py build -j$(grep -c 'processor' /proc/cpuinfo) \
+&& python3 setup.py install --prefix=/usr/ccs --root=/tmp/meson \
+&& (cd /tmp/meson; tar -cvf - . | tar -xvf - -C/) \
+&& rm -rvf /tmp/meson
+```
+
+### GNU Make
+
+#### 1º: Rode o *script* ``configure``
+
+```sh
+./configure --prefix=/usr/ccs \
+	--infodir=/usr/ccs/share/info \
+	--mandir=/usr/ccs/share/man \
+	--program-prefix=g \
+	--disable-nls
+```
+
+#### 2º: Compile e instale no sistema
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install \
+	&& (cd /usr/ccs/bin; \
+		ln -s gmake make) \
+	&& (cd /usr/ccs/share/man/man1; \
+		ln -s gmake.1 make.1)
 ```
 
 ### Heirloom Toolchest
@@ -4293,8 +4732,8 @@ programas que não iremos precisar no sistema-base.
 #### 1º: Aplique os *patches*
 
 ```sh
-patch -p1 -d ./heirloom-070715/ < \
-	"$COPA/usr/src/copacabana/patches/heirloom-070715/heirloom-070715_tools.patch"
+patch -p1 -d ./heirloom-ng-221025/ < \
+	/usr/src/copacabana/patches/heirloom-ng/heirloom-ng_base.patch
 ```
 
 #### 2º: Compile e instale no sistema-base
@@ -4323,21 +4762,21 @@ diretórios a se pular --- e refaça as ligações simbólicas anteriores para o
 novos caminhos dos binários no ``bin/``.
 
 ***
-**Nota**: Estaremos utilizando ligações simbólicas pois se é esperado que a
+**Nota**: Estaremos utilizando ligações simbólicas, pois se é esperado que a
 partição do diretório ``/usr`` seja separada da partição ``/``, logo, não
 poderemos utilizar ligações físicas, pois essas não funcionam entre discos
-diferentes. Isso já foi citado anteriormente, no começo dessa seção.
+diferentes. Isso já foi citado anteriormente no começo dessa seção.
 
 ***
 
 ```sh
 mkdir ./bin \
 && mkdir ./usr/sbin \
-&& for cmd in usr/bin/{STTY,basename,bfs,cat,ch{grp,mod,own},cp,copy,date,dd,dirname,df{,space},du,echo,ed,expr,false,{,f,e,p}grep,hostname,install,lc,ln,listusers,logname,ls,mk{dir,fifo,nod},mt,mv{,dir},pathchk,pkill,pwd,rm{,dir},sed,settime,sleep,stty,sync,tape{,cntl},tcopy,test,touch,true,tty,uname,uptime,w{,ho{,ami,do}}}; do
-  { printf 'Copying %s to /bin.\n' "$cmd"; cp "$cmd" ./bin/; } \
-  && { printf 'Removing %s.\n' "$cmd"; rm -f "$cmd"; }
+&& for cmd in usr/bin/{STTY,basename,bfs,cat,ch{grp,mod,own},cp,copy,date,dd,dirname,df{,space},du,echo,ed,expr,false,{,f,e,p}grep,hostname,install,lc,ln,listusers,logname,ls,mk{dir,fifo,nod},mt,mv{,dir},pathchk,pkill,pwd,rm{,dir},sed,settime,sleep,stty,sync,tape{,cntl},tcopy,test,touch,true,tty,uname,uptime,users,w{,ho{,ami,do}}}; do
+  { printf 'Copying %s to /bin.\n' "$cmd"; /tools/bin/cp "$cmd" ./bin/; } \
+  && { printf 'Removing %s.\n' "$cmd"; /tools/bin/rm -f "$cmd"; }
 done \
-&& mv usr/bin/logins usr/sbin \
+&& /tools/bin/mv usr/bin/logins usr/sbin \
 && for link in usr/ucb/bin/hostname usr/ucb/bin/tcopy \
 	usr/ucb/bin/uptime usr/ucb/bin/w usr/ucb/bin/whoami \
 	usr/bin/s42/basename usr/bin/s42/chmod usr/bin/s42/du \
@@ -4346,7 +4785,7 @@ done \
 	usr/bin/s42/touch usr/bin/s42/who; do
 	dir="$(dirname "$link")"
 	prog="$(basename "$link")"
-	( cd "$dir"; ln -sf "../../../bin/$prog" "$prog" )
+	( cd "$dir"; /tools/bin/ln -sf "../../../bin/$prog" "$prog" )
 done
 ```
 
@@ -4356,14 +4795,59 @@ Por fim, instale utilizando a ferramenta ``tar``:
 tar -cvf - . | tar -xvf - -C/
 ```
 
+### Procps-ng
+
+### 1º: Pequeno ajuste no arquivo ``proc/whattime.c``
+
+Esse ajuste faz com que o pacote passe a utilizar o utmpx ao invés do utmp por
+padrão. Originalmente, esse era um *patch* do Musl-LFS, mas foi refeito na forma
+de um linha de comando do sed. 
+
+```sh
+cp proc/whattime.c{,.orig} \ 
+&& sed -e 's/\<utmp\>/utmpx/' \
+	-e 's/setutent/setutxent/' \
+	-e 's/getutent/getutxent/' \
+	-e 's/endutent/endutxent/' < \
+	proc/whattime.c.orig > proc/whattime.c
+```
+
+Essa linha do sed faz o seguinte:
+
+* ``s/\<utmp\>/utmpx/``: .
+* ``s/setutent/setutxent/``: ; 
+* ``s/getutent/getutxent/``: ;
+* ``s/endutent/endutxent/'``: . 
+
+### 2º: Rode o *script* ``configure``
+
+```sh
+LDFLAGS='-static' \
+./configure --prefix=/usr \
+	--libdir=/lib \
+	--docdir=/usr/share/doc/$(basename $(pwd)) \
+	--disable-kill \
+	--disable-modern-top \
+	--without-systemd
+```
+
+### 3º: Compile e instale no sistema
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
+
+
 # *“Faça, fuce, force, vá! Não chore na porta...”*: Solucionando (e explicando) problemas
 
-> "Faça, fuce, force
-> Mas!
-> Não fique na fossa
-> Faça, fuce, force
-> Mas!
-> Não chore na porta"
+> "Faça, fuce, force  
+> Mas!  
+> Não fique na fossa  
+> Faça, fuce, force  
+> Mas!  
+> Não chore na porta"  
 > — Raul Seixas em "Faça, fuce, force", 4ª faixa
 > do álbum póstumo "Documento" de 1998.
 
@@ -4904,3 +5388,4 @@ Nota[ZW]: https://github.com/void-linux/void-packages/commit/4b6c115f475ec8d1404
 Nota[ZZ]: https://github.com/dslm4515/Musl-LFS/issues/81
 Nota[WW]: https://github.com/dslm4515/Musl-LFS/issues/81#issuecomment-1233496080
 Nota[AB]: https://git.centos.org/rpms/binutils/blob/c8s/f/SPECS/binutils.spec#_1090-1103
+
