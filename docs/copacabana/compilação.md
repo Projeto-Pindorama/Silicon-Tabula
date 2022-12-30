@@ -1758,7 +1758,7 @@ gmake -j$(grep -c 'processor' /proc/cpuinfo) \
 
 Essa é uma das várias implementações do comando ``tar``(1), bifurcada por
 Jörg "Schily" Schilling a partir de uma implementação originalmente publicada no
-Grupo de Usuários da Sun [Microsystems] (Sun Users Group) em 1982 e que, por
+Grupo de Usuários da Sun \[Microsystems\] (Sun Users Group) em 1982 e que, por
 conta disso, seria a implementação de código-aberto mais antiga do ``tar``(1)
 existente[^44] --- por mais que, segundo investigações feitas por Thomas E. Dickey
 em seu artigo "*TAR versus Portability*", essa história tenha vários furos.[^45]  
@@ -2836,9 +2836,7 @@ Por fim, ao invés de instalarmos os binários por meio do *script*
 
 ```sh
 install -m755 arch/$(bin/package host type)/bin/ksh /bin/ksh \
-&& (cd /bin; ln -sf ksh sh) \
-&& install -m444 src/cmd/ksh93/sh.1 /usr/share/man/man1/ksh.1 \
-&& (cd /usr/share/man/man1; ln -s ksh.1 sh.1)
+&& install -m444 src/cmd/ksh93/sh.1 /usr/share/man/man1/ksh.1
 ```
 
 ### musl-compat
@@ -3137,10 +3135,10 @@ done \
 	install -m775 "$bincmd" /usr/sbin
 done \
 && install -m644 libtz.a /usr/lib \
-&& for manpage in newctime.3 newtzset.3 tzfile.5 tzselect.8 zdump.8 zic.8; do
-	test -d "/usr/share/man/man${manpage##*.}" \
-		|| mkdir "/usr/share/man/man${manpage##*.}"
-	install -m644 ${manpage} /usr/share/man/man${manpage##*.}/.
+&& for manual in newctime.3 newtzset.3 tzfile.5 tzselect.8 zdump.8 zic.8; do
+	test -d "/usr/share/man/man${manual##*.}" \
+		|| mkdir "/usr/share/man/man${manual##*.}"
+	install -m644 ${manual} /usr/share/man/man${manual##*.}/.
 done \
 && zic -b fat -d "$zoneinfo" $timezones \
 && zic -b fat -d "$zoneinfo/posix" $timezones \
@@ -4038,6 +4036,7 @@ refaça as ligações simbólicas.
 ```sh
 chmod 755 /lib/libcap.so.?.?? \
 	&& mv /lib/libpsx.a /usr/lib \
+	&& mv /lib/libcap.a /usr/lib \
 	&& { [ -L /lib/libcap.so ] && rm /lib/libcap.so; } \
 	&& ln -s /lib/libcap.so.? /usr/lib/libcap.so
 ```
@@ -4185,6 +4184,32 @@ gmake -j1 \
 && install -m444 src/dash.1 /usr/share/man/man8/sh.8
 ```
 
+### Almquist shell (dinâmico, para o ``/bin/sh``)
+
+Esta é a nossa implementação de um shell POSIX que iremos utilizar no sistema,
+dessa vez para o usuário comum e *scripts*.  
+Nota-se que, por conta do Korn Shell 93 ter uma API diferente e incompatível com
+o POSIX, nós não podemos mais nos dar à liberdade de fazer uma ligação no
+sistema de arquivos entre o ``/bin/ksh`` e o ``/bin/sh``, por isso estaremos
+tendo o Almquist shell compilado mais uma vez.
+
+#### 1º: Rode o *script* ``configure``
+
+```sh
+sh configure --prefix=/usr \
+	--bindir=/bin \
+	--mandir=/usr/share/man \
+	--disable-static \
+	--without-libedit
+```
+
+#### 2º: Compile e instale na toolchain
+
+```sh
+gmake -j1 && install -m755 src/dash /bin/sh \
+&& install -m444 src/dash.1 /usr/share/man/man1/sh.1
+```
+
 ### GNU Libtool
 
 #### 1º: Rode o *script* ``configure``
@@ -4240,6 +4265,15 @@ Essa linha do sed faz o seguinte:
 ```sh
 gmake -j$(grep -c 'processor' /proc/cpuinfo) \
 	&& gmake install
+```
+
+Por fim, realoque as bibliotecas.
+
+```sh
+mv /usr/lib/libgdbm.so.3.0.0 /lib/libgdbm.so.3.0.0 \
+&& find /usr/lib -name 'libgdbm.so*' -type l -exec rm -f {} \;
+&& (cd /lib; ln -s libgdbm.so.3.0.0 libgdbm.so.3) \
+&& ln -s /lib/libgdbm.so.3 /usr/lib/libgdbm.so
 ```
 
 ### Gperf
@@ -4795,13 +4829,46 @@ Por fim, instale utilizando a ferramenta ``tar``:
 tar -cvf - . | tar -xvf - -C/
 ```
 
+### Patch (do lobase)
+
+#### 1º: Compile e instale no sistema
+
+Assim como na parte da toolchain, apenas entre no diretório contendo o
+código-fonte do ``patch``(1) e então instale no ``/usr/ccs/bin`` junto com a
+página de manual, manualmente.
+
+```sh 
+( cd /usr/src/cmp/stripped-lobase-20180406-original/usr.bin/patch/ \
+&& gmake clean \
+&& gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+&& install -m755 ./patch /usr/ccs/bin \
+&& install -m444 ./patch.1 /usr/ccs/share/man/man1 \
+&& gmake clean ) 
+```
+
+### Mktemp
+
+#### 1º: Rode o *script* ``configure``
+
+```sh
+LDFLAGS='-static' \
+./configure --prefix=/usr
+```
+
+#### 2º: Compile e instale no sistema
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
 ### Procps-ng
 
-### 1º: Pequeno ajuste no arquivo ``proc/whattime.c``
+#### 1º: Pequeno ajuste no arquivo ``proc/whattime.c``
 
 Esse ajuste faz com que o pacote passe a utilizar o utmpx ao invés do utmp por
 padrão. Originalmente, esse era um *patch* do Musl-LFS, mas foi refeito na forma
-de um linha de comando do sed. 
+de uma linha de comando do sed. 
 
 ```sh
 cp proc/whattime.c{,.orig} \ 
@@ -4819,25 +4886,368 @@ Essa linha do sed faz o seguinte:
 * ``s/getutent/getutxent/``: ;
 * ``s/endutent/endutxent/'``: . 
 
-### 2º: Rode o *script* ``configure``
+#### 2º: Rode o *script* ``configure``
 
 ```sh
-LDFLAGS='-static' \
+ACCEPT_INFERIOR_RM_PROGRAM='yes' \
+SED=/tools/bin/sed \
+LDFLAGS='-lutmps' \
 ./configure --prefix=/usr \
-	--libdir=/lib \
+	--sbindir=/sbin \
+	--libdir=/usr/lib \
 	--docdir=/usr/share/doc/$(basename $(pwd)) \
+	--disable-nls \
 	--disable-kill \
 	--disable-modern-top \
 	--without-systemd
 ```
 
-### 3º: Compile e instale no sistema
+#### 3º: Compile e instale no sistema
+
+```sh
+(cd /bin; mv sed sed.heirloom)
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install \
+&& mv /usr/lib/libprocps.so.8.?.? /lib \
+&& find /usr/lib/ -name 'libprocps.so*' -type l -exec rm -f {} \; \
+&& (cd /lib; ln -sf libprocps.so.8.?.? libprocps.so.8) \
+&& ln -sf /lib/libprocps.so.8 /usr/lib/libprocps.so \
+&& for cmd in pgrep pkill uptime w; do
+	mv "/usr/bin/$cmd" "/bin/$cmd"
+done \
+&& (cd /bin; mv sed.heirloom sed) 
+```
+
+### Berkeley Yacc (vulgo ``byacc``(1))
+
+Estaremos compilando essa implementação do yacc em paralelo ao GNU Bison pois
+alguns pacotes --- em especial, o Nroff do Heirloom, que vem a seguir ---
+dependem especificamente dessa implementação para compilar. Caso você não deseje
+ficar com o byacc no seu sistema, pode criar um ``pkgmap.txt`` e apagar os
+arquivos do pacote --- como fizemos com as Skalibs anteriormente.
+
+#### 1º: Rode o *script* ``configure``
+
+```sh
+./configure --prefix=/usr/ccs \
+	--program-prefix=b
+```
+
+#### 2º: Compile e instale no sistema
 
 ```sh
 gmake -j$(grep -c 'processor' /proc/cpuinfo) \
 	&& gmake install
 ```
 
+### Nroff (do Heirloom Doctools)
+
+#### 1º: Aplique os *patches*
+
+Esse *patch* corrige os diretórios para que as Doctools sejam instaladas
+corretamente no Copacabana, sem as redundâncias na estrutura de diretórios
+presentes na configuração original.
+
+```sh
+patch -p1 -d ./heirloom-doctools-191015/ < \
+	/usr/src/copacabana/patches/heirloom-doctools-191015/doctools-191017_mk.config.patch
+```
+
+#### 2º: Compile e instale no sistema
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
+### pigz 
+
+O pigz é uma reimplementação escrita do zero em 2007 por Mark Adler (e
+licenciada numa licença mais liberal do que a da implementação original
+do Projeto GNU) do gzip e 100% compatível com o mesmo, mas com suporte à
+paralelização.
+
+#### 1º: Pequeno ajuste no ``Makefile``
+
+Esse ajuste faz com que as ferramentas ``pigz`` e ``unpigz`` sejam linkeditadas
+estaticamente.
+
+```sh
+cp Makefile{,.orig} \
+&& sed '/LDFLAGS=/s/.*/& -static/' < Makefile.orig > Makefile
+```
+
+Essa linha do sed faz o seguinte:
+
+* ``/LDFLAGS=/s/.*/& -static/``: .
+
+#### 2º: Compile e instale na toolchain
+
+O pigz, por ser um programa portável, não faz uso do GNU auto\*tools --- ou
+seja, ele não tem um script ``configure`` ---, então é só rodar o GNU Make.  
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo)
+```
+
+Como o Makefile do pigz não tem um alvo ``install``, teremos de instalar
+manualmente (assim como no New AWK, inclusive o *hack* em Shell será semelhante).  
+
+```sh
+for cmd in pigz unpigz; do
+	install -m755 "$cmd" /bin
+done \
+&& ( \
+	cd /bin \
+	&& ln pigz gzip \
+	&& ln unpigz gunzip \
+	&& cd - \
+) \
+&& install -m444 pigz.1 /usr/share/man/man1 \
+&& (cd /usr/share/man/man1; ln -s pigz.1 gzip.1;)
+&& gmake clean
+```
+
+### mandoc
+
+#### 1º: Configure o código-fonte 
+
+Primeiramente, como o *script* ``configure`` do mandoc não funciona igual ao do
+GNU auto\*conf, devemos escrever nossa configuração manualmente para o
+``configure.local``. Estaremos fazendo isso utilizando um *here document*.
+
+```sh
+cat > configure.local <<-EOF
+OSNAME='Copacabana Linux 0.4'
+PREFIX=/usr
+LIBDIR=/usr/lib
+MANDIR=/usr/share/man
+MANPATH_BASE=/usr/share/man
+MANPATH_DEFAULT=/usr/share/man:/usr/local/share/man:/opt/share/man
+MANM_MANCONF='man.conf'
+UTF8_LOCALE='C.UTF-8'
+CFLAGS="$CFLAGS"
+STATIC='-static'
+EOF
+```
+
+Em seguida, execute o *script* ``configure``, sem nenhum parâmetro.
+
+```sh
+sh configure
+```
+
+#### 2º: Compile e instale na toolchain
+
+```
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake base-install lib-install
+```
+
+### IPRoute2
+
+#### 1º: Compile e instale na toolchain
+
+```
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& DOCDIR="/usr/share/doc/$(basename $(pwd))" \
+	gmake install
+```
+
+### KBD
+
+#### 1º: Rode o *script* ``configure``
+
+```sh
+./configure --prefix=/usr \
+	--sysconfdir=/etc \
+	--datadir=/lib/kbd \
+	--docdir="/usr/share/doc/$(basename $(pwd))" \
+	--mandir=/usr/share/man \
+	--disable-vlock \
+	--disable-nls 
+```
+
+***
+**Nota**: Por mais que os arquivos do kbd sejam independentes de arquitetura,
+não estaremos salvando-os em ``/usr/share/lib``, mas sim em ``/lib``. Isso
+porque os arquivos do kbd --- no caso, o arquivo do teclado selecionado --- é
+carregado na inicialização do sistema.
+
+***
+
+#### 2º: Compile e instale no sistema
+
+Primeiramente, devemos reorganizar alguns arquivos do pacote, renomeando
+arquivos que podem conflitar posteriormente.
+
+```sh
+for map in dvorak/no.map fgGIod/trf.map olpc/es.map olpc/pt.map qwerty/cz.map; do
+	mv "data/keymaps/i386/${map%/*}/$(basename $map .map)"{,"-${map%/*}"}.map
+done \
+&& mv data/keymaps/i386/colemak/{en-latin9,colemak}.map
+```
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
+Após a instalação, remova a biblioteca ``tswrap``, uma biblioteca interna que é
+instalada erroneamente no pacote final, ao menos na versão 2.3.0 do kbd, que
+estamos utilizando[^CD]. Essa correção possivelmente desaparecerá num futuro
+próximo, considerando que essa falha foi corrigida por Alexey Gladkov
+(``legionus``), mantenedor principal do kbd, em 9 de Agosto de 2020 e aplicada à
+árvore de código-fonte mestre no mesmo dia, no *commit*
+``6bc2235d206c79c1f3f6d7c961e09d95a7534e62``.
+
+```sh
+rm /usr/lib/libtswrap.{a,so{,.?,.?.?.?},la}
+``` 
+
+Por fim, reorganize alguns binários, movendo-os para o ``/bin``.
+
+```sh
+for cmd in {dump,load}keys kbd_mode setfont unicode{_start,_stop}; do
+	{ cp "/usr/bin/$cmd" "/bin/$cmd" && rm "/usr/bin/$cmd"; }
+done
+```
+
+### OpenVi
+
+#### 1º: Pequeno ajuste no ``GNUmakefile``
+
+```sh
+cp GNUmakefile{,.orig} \
+&& sed '/PREFIX/s@/usr/local@/usr@; /IUSGR/s@root:bin@root:wheel@; /BINPREFIX/s@o@@;' < \
+	 GNUmakefile.orig > GNUmakefile
+```
+
+Essa linha faz o seguinte:
+
+* ``/PREFIX/s@/usr/local@/usr@``: ;
+* ``/IUSGR/s@root:bin@root:wheel@``: ;
+* ``/BINPREFIX/s@o@@``: . 
+
+#### 2º: Compile e instale no sistema
+
+
+```sh
+LDFLAGS='-static' \
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install \
+	&& mv /usr/bin/vi /bin/vi \
+	&& for link in ex view; do
+		[ -L "/usr/bin/$link" ] && rm "/usr/bin/$link" \
+		&& ln -s /bin/vi "/bin/$link"
+	done
+```
+
+### Util-Linux
+
+#### 1º: Crie o diretório para o arquivo ``adjtime``
+
+Como o título já diz, crie um diretório no ``/var`` para guardar o arquivo
+``adjtime``.
+Nas versões anteriores da convenção FHS[^], o arquivo era localizado em
+``/etc/adjtime``. Entretanto, essa antiga localização contrariava a própria
+convenção em si, pois arquivos presentes no ``/etc`` não deveriam ser
+modificados a todo momento, logo esse arquivo foi remanejado para o diretório
+``/var``.  
+As regras do FHS em si são complexas em demasia, vale ressaltar.
+
+```sh
+mkdir -p /var/lib/hwclock
+```
+
+#### 2º: Pequeno ajuste no ``Makefile.in``
+
+```sh
+cp Makefile.in{,.orig} \
+&& sed '/chown/s/root:root/root:wheel/' < \
+	Makefile.in.orig > Makefile.in 
+```
+
+Essa linha do sed faz o seguinte:
+
+* ``/root:root/s/root:root/root:wheel/``: .
+
+#### 3º: Rode o *script* ``configure``
+
+```sh
+LIBS="$(pkg-config --libs utmps)" \
+CFLAGS="$CFLAGS -D_DIRENT_HAVE_D_TYPE" \
+ADJTIME_PATH='/var/lib/hwclock/adjtime' \
+./configure --prefix=/usr \
+	--sysconfdir=/etc \
+	--mandir=/usr/share/man \
+	--docdir="/usr/share/doc/$(basename $(pwd))" \
+	--enable-write \
+	--disable-cal \
+	--disable-chfn-chsh \
+	--disable-cramfs \
+	--disable-line \
+	--disable-login \
+	--disable-minix \
+	--disable-more \
+	--disable-mesg \
+	--disable-nologin \
+	--disable-runuser \
+	--disable-su \
+	--disable-ul \
+	--disable-nls \
+	--disable-pylibmount \
+	--without-python \
+	--without-systemd \
+	--without-systemdsystemunitdir
+```
+
+#### 4º: Compile e instale no sistema
+
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
+Após instalar, se você listar os arquivos do diretório onde as bibliotecas
+estáticas e ligações simbólicas para as dinâmicas são instaladas, o
+``/usr/lib``, perceberá que temos várias ligações quebradas.
+
+```console
+copacabana_chroot%; lc -l /usr/lib/*.so
+lrwxrwxrwx   1 root     wheel         30 Dec 30 18:22 /usr/lib/libblkid.so -> /usr/lib/lib/libblkid.so.1.1.0
+lrwxrwxrwx   1 root     wheel         30 Dec 30 18:22 /usr/lib/libfdisk.so -> /usr/lib/lib/libfdisk.so.1.1.0
+lrwxrwxrwx   1 root     wheel         30 Dec 30 18:22 /usr/lib/libmount.so -> /usr/lib/lib/libmount.so.1.1.0
+lrwxrwxrwx   1 root     wheel         34 Dec 30 18:22 /usr/lib/libsmartcols.so -> /usr/lib/lib/libsmartcols.so.1.1.0
+lrwxrwxrwx   1 root     wheel         29 Dec 30 18:22 /usr/lib/libuuid.so -> /usr/lib/lib/libuuid.so.1.3.0
+```
+
+Logo, temos de recriá-las.
+
+```sh
+for lib in /usr/lib/lib{blkid,fdisk,mount,smartcols,uuid}.so.?.?.?; do
+	libname="$(basename $lib)"
+	mv "$lib" "/lib/$libname" \
+	&& { [ -L "/usr/lib/${libname%.*.*.*}" ] && rm -f "/usr/lib/${libname%.*.*.*}"; } \
+	&& { [ -L "/usr/lib/${libname%.*.*}" ] && rm -f "/usr/lib/${libname%.*.*}"; } \
+	&& { [ -L "/lib/${libname%.*.*}" ] && rm -f "/lib/${libname%.*.*}"; } \
+	&& (cd /lib; ln -sf "$libname" "${libname%.*.*}") \
+	&& ln -sf "/lib/${libname%.*.*}" "/usr/lib/${libname%.*.*.*}"
+done
+```
+
+Também iremos remover o comando ``hexdump``, que se torna redundante com a
+presença do ``hd``.
+
+``sh
+rm -f /usr/bin/hexdump \
+&& rm -f /usr/share/man/man1/hexdump.1
+```
+
+### TAR do "Schily" (vulgo star, s-tar ou simplesmente ``tar``(1))
+
+####
 
 
 # *“Faça, fuce, force, vá! Não chore na porta...”*: Solucionando (e explicando) problemas
@@ -5377,6 +5787,8 @@ Copacabana Linux em 18 de Novembro de 2022.
 [^96]: https://sourceware.org/glibc/wiki/GNU_IFUNC
 [^97]: https://maskray.me/blog/2021-01-18-gnu-indirect-function 
 [^98]: https://www.openwall.com/lists/musl/2014/11/11/2
+
+[^CD]: https://github.com/legionus/kbd/issues/46
 
 Nota[12]: https://github.com/dslm4515/Musl-LFS/commit/19e881cd880ecd6fc8a6711c1c9038c2f3221381i
 
