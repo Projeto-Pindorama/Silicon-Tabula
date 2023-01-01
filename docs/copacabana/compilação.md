@@ -5018,7 +5018,7 @@ GNU auto\*conf, devemos escrever nossa configuração manualmente para o
 
 ```sh
 cat > configure.local <<-EOF
-OSNAME='Copacabana Linux 0.4'
+OSNAME='Copacabana 0.4'
 PREFIX=/usr
 LIBDIR=/usr/lib
 MANDIR=/usr/share/man
@@ -5243,6 +5243,50 @@ presença do ``hd``.
 ``sh
 rm -f /usr/bin/hexdump \
 && rm -f /usr/share/man/man1/hexdump.1
+```
+
+### e2fsprogs
+
+#### 1º: Rode o *script* ``configure``
+
+Curiosamente, assim como nas GNU Binutils e no GCC, é recomendado que se crie um
+diretório separado para executar a compilação em si.
+
+```sh
+mkdir build \
+&& cd build
+../configure --prefix=/usr \
+	--with-root-prefix='' \
+	--bindir=/bin \
+	--enable-symlink-install \
+	--enable-e2initrd-helper \
+	--enable-elf-shlibs \
+	--enable-lto \
+	--disable-rpath \
+	--disable-nls \
+	--disable-fsck \
+	--disable-uuidd \
+	--disable-libblkid \
+	--disable-libuuid
+```
+
+#### 2º: Compile e instale no sistema
+
+```sh
+(cd /bin; mv grep grep.heirloom) \
+&& gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install \
+	&& (cd /bin; mv grep.heirloom grep)
+```
+
+Por fim, corrija as permissões das bibliotecas estáticas instaladas para que
+estejam de acordo com as outras instaladas, com o usuário ``root`` podendo ler e
+escrever e com os demais usuários e grupos podendo apenas lê-las:
+
+```sh
+for lib in /usr/lib/lib{com_err,e2p,ext2fs,ss}.a; do
+	chmod 644 "$lib"
+done
 ```
 
 ### TAR do "Schily" (vulgo star, s-tar ou simplesmente ``tar``(1))
