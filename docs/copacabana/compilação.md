@@ -4271,7 +4271,7 @@ Por fim, realoque as bibliotecas.
 
 ```sh
 mv /usr/lib/libgdbm.so.3.0.0 /lib/libgdbm.so.3.0.0 \
-&& find /usr/lib -name 'libgdbm.so*' -type l -exec rm -f {} \;
+&& find /usr/lib -name 'libgdbm.so*' -type l -exec rm -f {} \; \
 && (cd /lib; ln -s libgdbm.so.3.0.0 libgdbm.so.3) \
 && ln -s /lib/libgdbm.so.3 /usr/lib/libgdbm.so
 ```
@@ -4806,7 +4806,7 @@ diferentes. Isso já foi citado anteriormente no começo dessa seção.
 ```sh
 mkdir ./bin \
 && mkdir ./usr/sbin \
-&& for cmd in usr/bin/{STTY,basename,bfs,cat,ch{grp,mod,own},cp,copy,date,dd,dirname,df{,space},du,echo,ed,expr,false,{,f,e,p}grep,hostname,install,lc,ln,listusers,logname,ls,mk{dir,fifo,nod},mt,mv{,dir},pathchk,pkill,pwd,rm{,dir},sed,settime,sleep,stty,sync,tape{,cntl},tcopy,test,touch,true,tty,uname,uptime,users,w{,ho{,ami,do}}}; do
+&& for cmd in usr/bin/{STTY,basename,bfs,cat,ch{grp,mod,own},cp{,io},copy,date,dd,dirname,df{,space},du,echo,ed,expr,false,{,f,e,p}grep,hostname,install,lc,ln,listusers,logname,ls,mk{dir,fifo,nod},mt,mv{,dir},pathchk,pkill,pwd,rm{,dir},sed,settime,sleep,stty,sync,tape{,cntl},tcopy,test,touch,true,tty,uname,uptime,users,w{,ho{,ami,do}}}; do
   { printf 'Copying %s to /bin.\n' "$cmd"; /tools/bin/cp "$cmd" ./bin/; } \
   && { printf 'Removing %s.\n' "$cmd"; /tools/bin/rm -f "$cmd"; }
 done \
@@ -5245,6 +5245,15 @@ rm -f /usr/bin/hexdump \
 && rm -f /usr/share/man/man1/hexdump.1
 ```
 
+### L.E.``mount``
+
+#### 1º: Instale no sistema
+
+```sh
+install -m755 lemount.ksh /sbin/lemount \
+&& install -m644 leconf /etc/leconf
+```
+
 ### e2fsprogs
 
 #### 1º: Rode o *script* ``configure``
@@ -5291,8 +5300,164 @@ done
 
 ### TAR do "Schily" (vulgo star, s-tar ou simplesmente ``tar``(1))
 
-####
+#### 1º: Configure o código-fonte
 
+```sh
+cat >> DEFAULTS/Defaults <<EOF
+INS_BASE= /usr
+DEFINSUSR= root
+DEFINSGRP= wheel
+EOF
+```
+
+#### 2º: Compile e instale no sistema
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
+Por fim, mova o binário do ``star`` para o ``/bin`` e então refaça as ligações
+simbólicas como ligações físicas.
+
+```sh
+mv /usr/bin/s{mt,tar{_sym,}} /bin \
+&& mv /usr/sbin/rmt /sbin/rmt \
+&& for link in {s{pax,cpio},{gnu,sun,,us}tar}; do
+	{ [ -L "/usr/bin/$link" ] && rm -f "/usr/bin/$link"; } \
+	&& (cd /bin; ln /bin/star "/bin/$link";)
+done \
+&& { [ -L /usr/bin/mt ] && rm -f /usr/bin/mt; } \
+&& (cd /bin; ln /bin/smt /bin/mt;)
+```
+
+### Sysklogd (do troglobit)
+
+#### 1º: Rode o *script* ``configure``
+
+```sh
+ACCEPT_INFERIOR_RM_PROGRAM=yes \
+./configure --prefix=/usr \
+	--sbindir=/sbin \
+	--sysconfdir=/etc \
+	--runstatedir=/run \
+	--libdir=/usr/lib \
+	--includedir=/usr/include \
+	--enable-static \
+	--without-logger
+```
+
+#### 2º: Compile e instale no sistema
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
+Em seguida, mova a biblioteca dinâmica para o ``/lib`` e refaça as ligações.
+
+```sh
+mv /usr/lib/libsyslog.so.0.1.0 /lib/libsyslog.so.0.1.0 \
+&& find /usr/lib -name 'libsyslog.so*' -type l -exec rm -f {} \; \
+&& (cd /lib; ln -s libsyslog.so.0.1.0 libsyslog.so.0) \
+&& ln -s /lib/libsyslog.so.0 /usr/lib/libsyslog.so
+```
+
+### Eudev
+
+#### 1º: Rode o *script* ``configure``
+
+```sh
+./configure --prefix=/usr \
+	--with-rootprefix=/ \
+	--bindir=/bin \
+	--sbindir=/sbin \
+	--sysconfdir=/etc \
+	--libdir=/usr/lib \
+	--libexecdir=/lib \
+	--with-rootlibdir=/lib \
+	--enable-split-usr \
+	--enable-manpages
+```
+
+#### 2º: Compile e instale no sistema
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) \
+	&& gmake install
+```
+
+Por fim, corrija a ligação simbólica do ``libudev.so`` --- que passa pelo mesmo
+problema do Util-Linux --- e mova o binário do comando ``udevadm`` do ``/bin``
+para o ``/sbin``, pois se trata de um binário que teoricamente deveria ser
+executado apenas pelo usuário "``root``".
+
+```
+mv /usr/lib/libudev.so.1.6.3 /lib/libudev.so.1.6.3 \
+&& find /usr/lib -name 'libudev.so*' -type l -exec rm -f {} \; \
+&& (cd /lib; ln -sf libudev.so.1.6.3 libudev.so.1;) \
+&& ln -sf /lib/libudev.so.1 /usr/lib/libudev.so \
+&& { [ -L /sbin/udevadm ] && rm /sbin/udevadm; } \
+&& mv /bin/udevadm /sbin/udevadm
+```
+
+### OpenRC
+
+#### 1º: Compile e instale no sistema
+
+```sh
+gmake -j$(grep -c 'processor' /proc/cpuinfo) install \
+	PROGLDFLAGS='-static -z muldefs' \
+	MKSTATICLIBS=yes \
+	MKSYSVINIT=no \
+	MKZSHCOMP=no \
+	MKBASHCOMP=no \
+	SH=/sbin/sh \
+	LIBEXECDIR=/lib/rc \
+	BRANDING=Copacabana \
+&& (cd /sbin; ln -s openrc-init init; )
+```
+
+### Gerando os arquivos finais
+
+#### ``/etc/issue`` e ``/etc/motd``
+
+```sh
+cat > /etc/issue <<"EOF"
+\d
+
+Copacabana/\m (\n.\o) (\l)
+Copyright (c) 2019-2023 Pindorama. All rights reserved.
+EOF
+
+cat > /etc/motd <<"EOF"
+Welcome to Copacabana!
+EOF
+```
+
+#### ``/etc/copacabana-release`` e ``/etc/os-release``
+
+```sh
+cat > /etc/copacabana-release <<"EOF"
+Copacabana 0.4/x86_64 (Developer Release)
+Copyright (c) 2019-2023 Pindorama. All rights reserved.
+
+Designed and built between February 2022 and January 2023.
+EOF
+```
+
+```sh
+cat > /etc/os-release <<"EOF"
+NAME="Copacabana"
+PRETTY_NAME="Pindorama Copacabana 0.4 (Developer Release)"
+ID="linux"
+VERSION="0.4 (Developer Release)"
+VERSION_ID="0.4"
+HOME_URL="http://copacabana.pindorama.dob.jp"
+SUPPORT_URL="https://github.com/Projeto-Pindorama/copacabana/issues"
+BUG_REPORT_URL="https://github.com/Projeto-Pindorama/copacabana/issues"
+EOF
+```
 
 # *“Faça, fuce, force, vá! Não chore na porta...”*: Solucionando (e explicando) problemas
 
